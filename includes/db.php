@@ -23,8 +23,10 @@ try {
         tier TEXT DEFAULT 'Standard',
         max_domains INTEGER DEFAULT 1,
         registered_domains TEXT DEFAULT '[]', -- JSON Array of domains
-        status TEXT DEFAULT 'active', -- 'active', 'banned', 'expired'
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        installation_fingerprint TEXT,        -- Unique hardware/env hash
+        status TEXT DEFAULT 'active',          -- 'active', 'banned', 'expired'
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        last_verified_at DATETIME             -- Track periodic pings
     )");
 
     // --- TABLE 2: PLATFORM SETTINGS ---
@@ -37,15 +39,21 @@ try {
     )");
 
     // --- TABLE 3: SYSTEM SETTINGS (Advanced Control Center) ---
+    // Modified to be a flexible KV store while keeping core admin fields
     $pdo->exec("CREATE TABLE IF NOT EXISTS system_settings (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        ls_api_key TEXT,
-        ls_webhook_secret TEXT,
-        ls_store_id TEXT,
+        key TEXT UNIQUE,
+        value TEXT,
         admin_username TEXT DEFAULT 'admin',
         admin_password TEXT,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
+
+    // Ensure columns exist (for migration)
+    try {
+        $pdo->exec("ALTER TABLE system_settings ADD COLUMN key TEXT");
+        $pdo->exec("ALTER TABLE system_settings ADD COLUMN value TEXT");
+    } catch (Exception $e) { /* ignore if already exists */ }
 
     // --- DEFAULT SEED FOR PLATFORM SETTINGS (Legacy) ---
     $stmt = $pdo->query("SELECT COUNT(*) FROM platform_settings");
@@ -53,23 +61,26 @@ try {
         $stmt = $pdo->prepare("INSERT INTO platform_settings (id, admin_user, admin_pass) VALUES (1, :user, :pass)");
         $stmt->execute([
             ':user' => 'admin',
-            ':pass' => password_hash('supersecure', PASSWORD_DEFAULT) // Secure Hashed Password
+            ':pass' => password_hash('supersecure', PASSWORD_DEFAULT)
         ]);
     }
 
     // --- DEFAULT SEED FOR SYSTEM SETTINGS (New) ---
-    $stmt = $pdo->query("SELECT COUNT(*) FROM system_settings");
-    if ($stmt->fetchColumn() == 0) {
+    $stmt = $pdo->query("SELECT COUNT(*) FROM system_settings WHERE id = 1");
+    if (!$stmt->fetch()) {
         $stmt = $pdo->prepare("INSERT INTO system_settings (id, admin_username, admin_password) VALUES (1, :user, :pass)");
         $stmt->execute([
             ':user' => 'admin',
-            ':pass' => password_hash('supersecure', PASSWORD_DEFAULT) // Secure Hashed Password
+            ':pass' => password_hash('supersecure', PASSWORD_DEFAULT)
         ]);
+        
+        // Initial Whitelist
+        $stmt = $pdo->prepare("INSERT OR IGNORE INTO system_settings (key, value) VALUES ('whitelist_domains', :val)");
+        $stmt->execute([':val' => json_encode(['bioscript.link'])]);
     }
 
 }
 catch (PDOException $e) {
-    // Log error securely
     error_log("Database Connection Error: " . $e->getMessage());
     die("System Error: Database unavailable.");
 }

@@ -610,6 +610,7 @@ if ($health && !empty($health['last_received_at'])) {
                             <th class="px-6 py-5">License Key</th>
                             <th class="px-6 py-5">Domain Usage</th>
                             <th class="px-6 py-5">Status</th>
+                            <th class="px-6 py-5">Fingerprint / Last Ping</th>
                             <th class="px-6 py-5">Created</th>
                             <th class="px-6 py-5 text-right">Actions</th>
                         </tr>
@@ -688,6 +689,19 @@ if ($health && !empty($health['last_received_at'])) {
                                     </span>
                                 </div>
                                 <?php endif; ?>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex flex-col text-[10px] font-mono">
+                                    <span class="text-slate-300 truncate max-w-[120px]"
+                                        title="<?php echo htmlspecialchars($lic['installation_fingerprint'] ?: 'N/A'); ?>">
+                                        ID:
+                                        <?php echo $lic['installation_fingerprint'] ? substr($lic['installation_fingerprint'], 0, 12) . '...' : 'N/A'; ?>
+                                    </span>
+                                    <span class="text-slate-500 mt-1">
+                                        Ping:
+                                        <?php echo $lic['last_verified_at'] ? date('M d, H:i', strtotime($lic['last_verified_at'] . ' UTC')) : 'Never'; ?>
+                                    </span>
+                                </div>
                             </td>
                             <td class="px-6 py-4 text-slate-500 text-xs">
                                 <?php echo date('M d, Y', strtotime($lic['created_at'])); ?>

@@ -32,24 +32,82 @@ try {
         send_json_error('Method Not Allowed');
     }
 
-    // Get Input
-    $license_key = $_POST['license_key'] ?? '';
-    $raw_domain = $_POST['host_domain'] ?? '';
+    // Get Mutual Auth Data
+    $raw_data = $_POST['data'] ?? '';
+    $received_signature = $_POST['signature'] ?? '';
+
+    if (empty($raw_data) || empty($received_signature)) {
+        send_json_error('Missing Security Payload');
+    }
+
+    // 1. Verify Request Signature (Mutual Auth)
+    $expected_request_signature = hash_hmac('sha256', $raw_data, SHARED_SECRET);
+    if (!hash_equals($expected_request_signature, $received_signature)) {
+        send_json_error('Request Authentication Failed');
+    }
+
+    $request = json_decode($raw_data, true);
+    if (!$request) {
+        send_json_error('Malformed Request Payload');
+    }
+
+    $license_key = $request['license_key'] ?? '';
+    $raw_domain = $request['host_domain'] ?? '';
+    $fingerprint = $request['fingerprint'] ?? '';
+    $timestamp = $request['timestamp'] ?? 0;
+
+    // Check Replay
+    if (abs(time() - $timestamp) > 300) {
+        send_json_error('Request Expired (Time Drift)');
+    }
 
     // --- DOMAIN NORMALIZATION ---
-    // 1. Remove protocol (http://, https://)
-    $domain = preg_replace('#^https?://#', '', $raw_domain);
-    // 2. Remove 'www.'
+    $domain = strtolower(trim($raw_domain));
+    $domain = preg_replace('#^https?://#', '', $domain);
     $domain = preg_replace('/^www\./', '', $domain);
-    // 3. Remove port number (e.g., :8080)
     $domain = preg_replace('/:\d+$/', '', $domain);
-    // 4. Remove trailing slashes
     $domain = rtrim($domain, '/');
-    // 5. Lowercase
-    $domain = strtolower($domain);
+
+    if (empty($domain)) {
+        $domain = 'unknown_origin';
+    }
+
+    // --- DEMO / WHITELIST LOGIC ---
+    $stmt = $pdo->prepare("SELECT value FROM system_settings WHERE key = 'whitelist_domains' LIMIT 1");
+    $stmt->execute();
+    $whitelist_json = $stmt->fetchColumn();
+    $whitelist = json_decode($whitelist_json ?: '[]', true);
+
+    $is_whitelisted = in_array($domain, $whitelist) ||
+        str_ends_with($domain, '.test') ||
+        str_ends_with($domain, '.local') ||
+        $domain === 'localhost';
+
+    if ($is_whitelisted) {
+        $payload = [
+            'status' => 'active',
+            'domain' => $domain,
+            'message' => 'Demo/Test Environment - Verification Bypassed',
+            'timestamp' => time()
+        ];
+
+        $payload_json = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        $signature = hash_hmac('sha256', $payload_json, SHARED_SECRET);
+
+        echo json_encode([
+            'status' => 'success',
+            'payload' => $payload_json,
+            'signature' => $signature
+        ]);
+        exit;
+    }
 
     // Default Response Payload (Invalid)
-    $payload = ['status' => 'invalid', 'message' => 'Invalid License Key'];
+    $payload = [
+        'status' => 'invalid',
+        'message' => 'Invalid License Key',
+        'timestamp' => time()
+    ];
 
     if (!empty($license_key)) {
         // Query DB for the key
@@ -65,80 +123,98 @@ try {
                 $registered_domains = [];
             }
 
-            // Check Domain Logic
-            if (empty($registered_domains)) {
-                // FIRST USE: Lock to this domain
-                $registered_domains[] = $domain;
-
-                $update = $pdo->prepare("UPDATE licenses SET registered_domains = :domains WHERE id = :id");
-                $update->execute([
-                    ':domains' => json_encode($registered_domains),
-                    ':id' => $license['id']
-                ]);
-
+            // --- FINGERPRINT CHECK (Anti-Clone) ---
+            if (!empty($license['installation_fingerprint']) && $license['installation_fingerprint'] !== $fingerprint) {
+                // Check if we should allow a re-activation or block it
                 $payload = [
-                    'status' => 'active',
-                    'domain' => $domain,
-                    'message' => 'License Activated & Locked to ' . $domain,
-                    'timestamp' => time()
-                ];
-
-            }
-            elseif (in_array($domain, $registered_domains)) {
-                // Domain already registered -> Active
-                $payload = [
-                    'status' => 'active',
-                    'domain' => $domain,
-                    'message' => 'License Valid',
+                    'status' => 'invalid',
+                    'reason' => 'Fingerprint Mismatch',
+                    'message' => 'This license is already active on another server hardware.',
                     'timestamp' => time()
                 ];
             }
             else {
-                // Domain Mismatch
-                // Check if they have slots left (Enterprise features)
-                if (count($registered_domains) < $license['max_domains']) {
-                    // Add new domain
+                // Check Domain Logic
+                if (empty($registered_domains)) {
+                    // FIRST USE: Lock to this domain AND fingerprint
                     $registered_domains[] = $domain;
-                    $update = $pdo->prepare("UPDATE licenses SET registered_domains = :domains WHERE id = :id");
+
+                    $update = $pdo->prepare("UPDATE licenses SET registered_domains = :domains, installation_fingerprint = :fp, last_verified_at = CURRENT_TIMESTAMP WHERE id = :id");
                     $update->execute([
                         ':domains' => json_encode($registered_domains),
+                        ':fp' => $fingerprint,
                         ':id' => $license['id']
                     ]);
 
                     $payload = [
                         'status' => 'active',
                         'domain' => $domain,
-                        'message' => 'Additional Domain Registered',
+                        'message' => 'License Activated & Locked to ' . $domain,
+                        'timestamp' => time()
+                    ];
+
+                }
+                elseif (in_array($domain, $registered_domains)) {
+                    // Domain already registered -> Active
+                    $pdo->prepare("UPDATE licenses SET last_verified_at = CURRENT_TIMESTAMP WHERE id = :id")->execute([':id' => $license['id']]);
+
+                    $payload = [
+                        'status' => 'active',
+                        'domain' => $domain,
+                        'message' => 'License Valid',
                         'timestamp' => time()
                     ];
                 }
                 else {
-                    $payload = [
-                        'status' => 'invalid',
-                        'reason' => 'Domain Mismatch',
-                        'message' => 'This license is locked to another domain: ' . implode(', ', $registered_domains),
-                        'timestamp' => time()
-                    ];
+                    // Domain Mismatch -> Check Tier Slots
+                    if (count($registered_domains) < $license['max_domains']) {
+                        $registered_domains[] = $domain;
+                        $update = $pdo->prepare("UPDATE licenses SET registered_domains = :domains, last_verified_at = CURRENT_TIMESTAMP WHERE id = :id");
+                        $update->execute([
+                            ':domains' => json_encode($registered_domains),
+                            ':id' => $license['id']
+                        ]);
+
+                        $payload = [
+                            'status' => 'active',
+                            'domain' => $domain,
+                            'message' => 'Additional Domain Registered',
+                            'timestamp' => time()
+                        ];
+                    }
+                    else {
+                        $payload = [
+                            'status' => 'invalid',
+                            'reason' => 'Domain Mismatch',
+                            'message' => 'License locked to: ' . implode(', ', $registered_domains),
+                            'timestamp' => time()
+                        ];
+                    }
                 }
             }
         }
         elseif ($license && $license['status'] === 'banned') {
-            $payload = ['status' => 'invalid', 'reason' => 'Banned', 'message' => 'This license has been banned by the authority.', 'timestamp' => time()];
+            $payload = [
+                'status' => 'invalid',
+                'reason' => 'Banned',
+                'message' => 'License suspended by authority.',
+                'timestamp' => time()
+            ];
         }
         elseif ($license && $license['status'] === 'expired') {
-            $payload = ['status' => 'invalid', 'reason' => 'Expired', 'message' => 'This license has expired.', 'timestamp' => time()];
+            $payload = [
+                'status' => 'invalid',
+                'reason' => 'Expired',
+                'message' => 'License has expired.',
+                'timestamp' => time()
+            ];
         }
     }
 
-    // --- THE CRYPTOGRAPHY ---
-
-    // Encode Payload to JSON string
+    // --- SIGNED RESPONSE ---
     $payload_json = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-
-    // Generate Signature
     $signature = hash_hmac('sha256', $payload_json, SHARED_SECRET);
 
-    // Return JSON Response
     echo json_encode([
         'status' => 'success',
         'payload' => $payload_json,
@@ -148,7 +224,6 @@ try {
 
 }
 catch (Exception $e) {
-    // Catch ANY server-side error (PDO, Logic, etc) and return valid JSON
     http_response_code(500);
     send_json_error('Server Exception: ' . $e->getMessage());
 }
