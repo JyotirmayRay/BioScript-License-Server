@@ -80,6 +80,15 @@ try {
             ':pass' => password_hash('b1oScR1pT_F0rtress_2026_#2bf57f09', PASSWORD_DEFAULT)
         ]);
     }
+    else {
+        // MIGRATION: Secure legacy plaintext passwords if they exist
+        $stmt = $pdo->query("SELECT admin_pass FROM platform_settings WHERE id = 1");
+        $admin = $stmt->fetch();
+        if ($admin && (password_get_info($admin['admin_pass'])['algo'] === 0 || $admin['admin_pass'] === 'supersecure')) {
+            $new_hash = password_hash('b1oScR1pT_F0rtress_2026_#2bf57f09', PASSWORD_DEFAULT);
+            $pdo->prepare("UPDATE platform_settings SET admin_pass = ? WHERE id = 1")->execute([$new_hash]);
+        }
+    }
 
     // --- DEFAULT SEED FOR SYSTEM SETTINGS (New) ---
     try {

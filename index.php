@@ -26,19 +26,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     $stmt = $pdo->query("SELECT admin_user, admin_pass FROM platform_settings WHERE id = 1");
     $admin = $stmt->fetch();
 
-    // ROBUST DIAGNOSTIC LOGGING
-    $auth_data = [
-        'time' => date('Y-m-d H:i:s'),
-        'user_input' => $user,
-        'db_user' => $admin['admin_user'] ?? 'N/A',
-        'pass_len' => strlen($pass),
-        'row_found' => (bool)$admin,
-        'pass_matches' => ($admin && password_verify($pass, $admin['admin_pass']))
-    ];
-    $log_line = json_encode($auth_data) . "\n";
-    file_put_contents('/tmp/ls_auth.log', $log_line, FILE_APPEND);
-    error_log("AUTH_DIAG: " . $log_line);
-
     if ($admin && $user === $admin['admin_user'] && password_verify($pass, $admin['admin_pass'])) {
         $_SESSION['ls_admin_logged_in'] = true;
         $_SESSION['ls_admin_user'] = $user;
