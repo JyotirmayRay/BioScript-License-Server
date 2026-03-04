@@ -10,8 +10,7 @@ if (!is_dir(dirname(DB_PATH))) {
 
 try {
     // Connect to SQLite Database
-    $db_file = __DIR__ . '/../authority.db';
-    $pdo = new PDO('sqlite:' . $db_file);
+    $pdo = new PDO('sqlite:' . DB_PATH);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
@@ -38,22 +37,39 @@ try {
         ls_webhook_secret TEXT
     )");
 
-    // --- TABLE 3: SYSTEM SETTINGS (Advanced Control Center) ---
     // Modified to be a flexible KV store while keeping core admin fields
     $pdo->exec("CREATE TABLE IF NOT EXISTS system_settings (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        key TEXT UNIQUE,
+        key TEXT,
         value TEXT,
         admin_username TEXT DEFAULT 'admin',
         admin_password TEXT,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
 
+    // Ensure UNIQUE constraint on 'key' column if possible (SQLite specific migration)
+    try {
+        $pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_settings_key ON system_settings(key)");
+    }
+    catch (Exception $e) {
+    }
+
     // Ensure columns exist (for migration)
     try {
+        $pdo->exec("ALTER TABLE system_settings ADD COLUMN id INTEGER PRIMARY KEY AUTOINCREMENT");
+    }
+    catch (Exception $e) {
+    }
+    try {
         $pdo->exec("ALTER TABLE system_settings ADD COLUMN key TEXT");
+    }
+    catch (Exception $e) {
+    }
+    try {
         $pdo->exec("ALTER TABLE system_settings ADD COLUMN value TEXT");
-    } catch (Exception $e) { /* ignore if already exists */ }
+    }
+    catch (Exception $e) {
+    }
 
     // --- DEFAULT SEED FOR PLATFORM SETTINGS (Legacy) ---
     $stmt = $pdo->query("SELECT COUNT(*) FROM platform_settings");
@@ -66,21 +82,44 @@ try {
     }
 
     // --- DEFAULT SEED FOR SYSTEM SETTINGS (New) ---
-    $stmt = $pdo->query("SELECT COUNT(*) FROM system_settings WHERE id = 1");
-    if (!$stmt->fetch()) {
-        $stmt = $pdo->prepare("INSERT INTO system_settings (id, admin_username, admin_password) VALUES (1, :user, :pass)");
-        $stmt->execute([
-            ':user' => 'admin',
-            ':pass' => password_hash('supersecure', PASSWORD_DEFAULT)
-        ]);
-        
-        // Initial Whitelist
-        $stmt = $pdo->prepare("INSERT OR IGNORE INTO system_settings (key, value) VALUES ('whitelist_domains', :val)");
-        $stmt->execute([':val' => json_encode(['bioscript.link'])]);
+    try {
+        // Query a generic field to check existence
+        $stmt = $pdo->query("SELECT * FROM system_settings LIMIT 1");
+        $all = $stmt->fetchAll();
+        $has_row1 = false;
+        if ($all) {
+            foreach ($all as $row) {
+                // Check if it's the admin row without assuming 'id' exists
+                if (($row['admin_username'] ?? '') === 'admin') {
+                    $has_row1 = true;
+                    break;
+                }
+            }
+        }
+    } catch (Exception $e) {
+        $has_row1 = false;
+    }
+
+    if (!$has_row1) {
+        try {
+            // Seed without explicit ID
+            $stmt = $pdo->prepare("INSERT INTO system_settings (admin_username, admin_password) VALUES (:user, :pass)");
+            $stmt->execute([
+                ':user' => 'admin',
+                ':pass' => password_hash('supersecure', PASSWORD_DEFAULT)
+            ]);
+            
+            // Initial Whitelist
+            $stmt = $pdo->prepare("INSERT OR IGNORE INTO system_settings (key, value) VALUES ('whitelist_domains', :val)");
+            $stmt->execute([':val' => json_encode(['bioscript.link'])]);
+        } catch (Exception $e) {}
     }
 
 }
 catch (PDOException $e) {
-    error_log("Database Connection Error: " . $e->getMessage());
+    // Log detailed error for diagnostic, but show generic message to user
+    $error_msg = "[" . date('Y-m-d H:i:s') . "] DB Failure: " . $e->getMessage() . " | Path: " . (defined('DB_PATH') ? DB_PATH : 'UNDEFINED') . "\n";
+    @file_put_contents(__DIR__ . '/../logs/db_error.log', $error_msg, FILE_APPEND);
+    error_log($error_msg); // Also send to PHP system log
     die("System Error: Database unavailable.");
 }
