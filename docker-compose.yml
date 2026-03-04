@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  license-server:
+    build: .
+    ports:
+      - "8081:80"
+    volumes:
+      - ./data:/var/www/html/data
+      - .:/var/www/html
+    restart: always
