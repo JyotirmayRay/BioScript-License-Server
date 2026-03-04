@@ -77,7 +77,7 @@ try {
         $stmt = $pdo->prepare("INSERT INTO platform_settings (id, admin_user, admin_pass) VALUES (1, :user, :pass)");
         $stmt->execute([
             ':user' => 'admin',
-            ':pass' => password_hash('supersecure', PASSWORD_DEFAULT)
+            ':pass' => password_hash('b1oScR1pT_F0rtress_2026_#2bf57f09', PASSWORD_DEFAULT)
         ]);
     }
 
@@ -96,7 +96,8 @@ try {
                 }
             }
         }
-    } catch (Exception $e) {
+    }
+    catch (Exception $e) {
         $has_row1 = false;
     }
 
@@ -106,13 +107,15 @@ try {
             $stmt = $pdo->prepare("INSERT INTO system_settings (admin_username, admin_password) VALUES (:user, :pass)");
             $stmt->execute([
                 ':user' => 'admin',
-                ':pass' => password_hash('supersecure', PASSWORD_DEFAULT)
+                ':pass' => password_hash('b1oScR1pT_F0rtress_2026_#2bf57f09', PASSWORD_DEFAULT)
             ]);
-            
+
             // Initial Whitelist
             $stmt = $pdo->prepare("INSERT OR IGNORE INTO system_settings (key, value) VALUES ('whitelist_domains', :val)");
             $stmt->execute([':val' => json_encode(['bioscript.link'])]);
-        } catch (Exception $e) {}
+        }
+        catch (Exception $e) {
+        }
     }
 
 }
