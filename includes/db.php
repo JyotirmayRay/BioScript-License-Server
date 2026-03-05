@@ -146,4 +146,14 @@ catch (PDOException $e) {
     @file_put_contents(__DIR__ . '/../logs/db_error.log', $error_msg, FILE_APPEND);
     error_log($error_msg); // Also send to PHP system log
     die("System Error: Database unavailable.");
+}       }
+    }
+
+}
+catch (PDOException $e) {
+    // Log detailed error for diagnostic, but show generic message to user
+    $error_msg = "[" . date('Y-m-d H:i:s') . "] DB Failure: " . $e->getMessage() . " | Path: " . (defined('DB_PATH') ? DB_PATH : 'UNDEFINED') . "\n";
+    @file_put_contents(__DIR__ . '/../logs/db_error.log', $error_msg, FILE_APPEND);
+    error_log($error_msg); // Also send to PHP system log
+    die("System Error: Database unavailable.");
 }
