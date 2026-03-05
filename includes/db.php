@@ -144,6 +144,7 @@ try {
         "ALTER TABLE settings ADD COLUMN woo_store_url TEXT DEFAULT ''",
         "ALTER TABLE settings ADD COLUMN woo_consumer_key TEXT DEFAULT ''",
         "ALTER TABLE settings ADD COLUMN woo_consumer_secret TEXT DEFAULT ''",
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_woo_order_id ON orders(woo_order_id)",
     ];
     foreach ($migrations as $sql) {
         try {
