@@ -223,7 +223,24 @@ try {
     exit;
 
 }
-catch (Exception $e) {
-    http_response_code(500);
-    send_json_error('Server Exception: ' . $e->getMessage());
+catch (Throwable $e) {
+    // Phase 1: Enable Safe Error Logging
+    $log_dir = __DIR__ . '/../logs';
+    if (!is_dir($log_dir)) {
+        @mkdir($log_dir, 0755, true);
+    }
+    $err_log = "[" . date('Y-m-d H:i:s') . "] API 500 Error: " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine() . "\n";
+    @file_put_contents($log_dir . '/api_error.log', $err_log, FILE_APPEND);
+    error_log($err_log);
+
+    // Phase 5: Error Handling - Ensure JSON response even on fatal crash
+    if (!headers_sent()) {
+        header('Content-Type: application/json');
+    }
+    echo json_encode([
+        'status' => 'error',
+        'message' => 'Internal Server Error (Logged)',
+        'debug_ref' => time()
+    ]);
+    exit;
 }

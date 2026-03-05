@@ -37,7 +37,17 @@ try {
         ls_webhook_secret TEXT
     )");
 
-    // --- TABLE 3: ACTIVATIONS (Track individual activations) ---
+    // --- TABLE 3: SYSTEM SETTINGS (Flexible KV store) ---
+    $pdo->exec("CREATE TABLE IF NOT EXISTS system_settings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        key TEXT,
+        value TEXT,
+        admin_username TEXT DEFAULT 'admin',
+        admin_password TEXT,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )");
+
+    // --- TABLE 4: ACTIVATIONS (Track individual activations) ---
     $pdo->exec("CREATE TABLE IF NOT EXISTS activations (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         license_id INTEGER NOT NULL,
@@ -48,7 +58,7 @@ try {
         status TEXT DEFAULT 'active'
     )");
 
-    // --- TABLE 4: ORDERS (Log purchase events) ---
+    // --- TABLE 5: ORDERS (Log purchase events) ---
     $pdo->exec("CREATE TABLE IF NOT EXISTS orders (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         order_number TEXT UNIQUE,
@@ -142,18 +152,19 @@ try {
 }
 catch (PDOException $e) {
     // Log detailed error for diagnostic, but show generic message to user
-    $error_msg = "[" . date('Y-m-d H:i:s') . "] DB Failure: " . $e->getMessage() . " | Path: " . (defined('DB_PATH') ? DB_PATH : 'UNDEFINED') . "\n";
-    @file_put_contents(__DIR__ . '/../logs/db_error.log', $error_msg, FILE_APPEND);
-    error_log($error_msg); // Also send to PHP system log
-    die("System Error: Database unavailable.");
-}       }
+    $log_dir = __DIR__ . '/../logs';
+    if (!is_dir($log_dir)) {
+        @mkdir($log_dir, 0755, true);
     }
-
-}
-catch (PDOException $e) {
-    // Log detailed error for diagnostic, but show generic message to user
     $error_msg = "[" . date('Y-m-d H:i:s') . "] DB Failure: " . $e->getMessage() . " | Path: " . (defined('DB_PATH') ? DB_PATH : 'UNDEFINED') . "\n";
-    @file_put_contents(__DIR__ . '/../logs/db_error.log', $error_msg, FILE_APPEND);
-    error_log($error_msg); // Also send to PHP system log
+    @file_put_contents($log_dir . '/db_error.log', $error_msg, FILE_APPEND);
+    error_log($error_msg);
+
+    // Return structured error if possible to prevent raw 500
+    if (PHP_SAPI !== 'cli' && !headers_sent()) {
+        header('Content-Type: application/json');
+        echo json_encode(['status' => 'error', 'message' => 'Database unavailable.']);
+        exit;
+    }
     die("System Error: Database unavailable.");
 }
