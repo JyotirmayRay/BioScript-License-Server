@@ -101,6 +101,34 @@ if (isset($_GET['action']) && $_GET['action'] === 'reset_domains' && isset($_GET
     exit;
 }
 
+// Manual Domain Management
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_domains'])) {
+    verify_csrf();
+    $id = $_POST['id'];
+    $domains_raw = $_POST['domains'] ?? '[]';
+    $domains_arr = json_decode($domains_raw, true);
+    
+    // Clean up domains: lowercase, trim, remove protocol
+    $cleaned_domains = [];
+    if (is_array($domains_arr)) {
+        foreach ($domains_arr as $d) {
+            $d = strtolower(trim($d));
+            $d = preg_replace('#^https?://#', '', $d);
+            $d = preg_replace('/^www\./', '', $d);
+            $d = preg_replace('/:\d+$/', '', $d);
+            $d = rtrim($d, '/');
+            if (!empty($d)) $cleaned_domains[] = $d;
+        }
+    }
+    $cleaned_domains = array_unique($cleaned_domains);
+    $json = json_encode(array_values($cleaned_domains));
+    
+    $stmt = $pdo->prepare("UPDATE licenses SET registered_domains = :domains WHERE id = :id");
+    $stmt->execute([':domains' => $json, ':id' => $id]);
+    header('Location: dashboard.php?msg=domains_updated');
+    exit;
+}
+
 // Delete
 if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id'])) {
     if (!isset($_GET['token']) || $_GET['token'] !== $_SESSION['csrf_token']) {
@@ -664,8 +692,8 @@ if ($health && !empty($health['last_received_at'])) {
                                             </span>
                                             <?php if ($domain_count > 0): ?>
                                             <button
-                                                @click="domainList = <?php echo htmlspecialchars(json_encode($domains)); ?>; domainsModalOpen = true"
-                                                class="text-blue-400 hover:text-blue-300 text-[10px] uppercase font-bold tracking-wider">View
+                                                @click="selectedLicense = <?php echo htmlspecialchars(json_encode($lic)); ?>; domainList = <?php echo htmlspecialchars(json_encode($domains)); ?>; domainsModalOpen = true"
+                                                class="text-blue-400 hover:text-blue-300 text-[10px] uppercase font-bold tracking-wider">Manage
                                                 Domains</button>
                                             <?php endif; ?>
                                         </div>
@@ -916,7 +944,7 @@ if ($health && !empty($health['last_received_at'])) {
         </div>
     </div>
 
-    <!-- VIEW DOMAINS MODAL (License Detail Panel) -->
+    <!-- MANAGE DOMAINS MODAL -->
     <div x-show="domainsModalOpen" style="display: none;"
         class="fixed inset-0 z-50 flex items-center justify-end bg-slate-950/80 backdrop-blur-sm"
         x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-x-10"
@@ -925,86 +953,86 @@ if ($health && !empty($health['last_received_at'])) {
         <div class="ent-glass h-full w-full max-w-md shadow-2xl relative overflow-y-auto border-y-0 border-r-0 rounded-none flex flex-col"
             @click.away="domainsModalOpen = false">
             <div class="p-6 border-b border-slate-700/50 flex justify-between items-center bg-slate-900/50 shrink-0">
-                <div class="flex items-center space-x-3 text-emerald-500">
-                    <i class="fas fa-layer-group"></i>
-                    <h3 class="text-sm font-black text-white uppercase tracking-widest">License Details</h3>
+                <div class="flex items-center space-x-3 text-blue-500">
+                    <i class="fas fa-globe"></i>
+                    <h3 class="text-sm font-black text-white uppercase tracking-widest">Manage Domain Access</h3>
                 </div>
                 <button @click="domainsModalOpen = false" class="text-slate-500 hover:text-white transition-colors">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
 
-            <div class="p-6 flex-1 space-y-6">
-                <!-- Details Group -->
+            <div class="p-6 flex-1 space-y-8">
+                <!-- License Context -->
                 <div class="bg-slate-950 rounded border border-slate-800/80 p-5">
-                    <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Client
+                    <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Target
                         Identity</label>
-                    <div class="text-sm font-bold text-white mb-4"
+                    <div class="text-xs font-bold text-white mb-3"
                         x-text="selectedLicense ? selectedLicense.client_email : ''"></div>
-
-                    <label
-                        class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Architecture
-                        Key</label>
-                    <div
-                        class="bg-slate-900 border border-slate-800 rounded px-3 py-2 text-xs font-mono text-blue-400 mb-4 tracking-wider flex justify-between items-center">
-                        <span x-text="selectedLicense ? selectedLicense.license_key : ''"></span>
-                        <button onclick="navigator.clipboard.writeText(selectedLicense.license_key)"
-                            class="text-slate-500 hover:text-white"><i class="fas fa-copy"></i></button>
-                    </div>
-
-                    <div class="flex justify-between items-center">
-                        <div>
-                            <label
-                                class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Status</label>
-                            <span
-                                class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider"
-                                :class="selectedLicense && selectedLicense.status === 'active' ? 'badge-active' : 'badge-suspended'">
-                                <span
-                                    x-text="selectedLicense && selectedLicense.status === 'active' ? 'Active' : 'Suspended'"></span>
-                            </span>
-                        </div>
-                        <div class="text-right">
-                            <label
-                                class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Provisioned</label>
-                            <span class="text-xs text-slate-300 font-mono"
-                                x-text="selectedLicense ? new Date(selectedLicense.created_at).toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'}) : ''"></span>
-                        </div>
-                    </div>
+                    <div class="bg-slate-900 border border-slate-800 rounded px-3 py-2 text-[10px] font-mono text-blue-400 tracking-wider"
+                        x-text="selectedLicense ? selectedLicense.license_key : ''"></div>
                 </div>
 
-                <!-- Domain Bindings -->
-                <div>
+                <!-- Domain Editor -->
+                <div x-data="{ newDomain: '' }">
                     <h4
-                        class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center justify-between">
-                        <span>Domain Bindings</span>
-                        <span class="bg-slate-800 text-slate-300 px-2 py-0.5 rounded"
+                        class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex justify-between">
+                        <span>Authorized Domains</span>
+                        <span class="text-blue-400"
                             x-text="domainList.length + ' / ' + (selectedLicense ? selectedLicense.max_domains : 0)"></span>
                     </h4>
-                    <ul class="space-y-2">
-                        <template x-for="domain in domainList">
-                            <li class="flex items-center space-x-3 p-3 bg-slate-950 rounded border border-slate-800">
-                                <i class="fas fa-link text-slate-600 text-[10px]"></i>
-                                <span class="text-xs font-mono text-slate-300 tracking-wide" x-text="domain"></span>
-                            </li>
+
+                    <div class="flex space-x-2 mb-6">
+                        <input type="text" x-model="newDomain"
+                            @keydown.enter.prevent="if(newDomain.trim()){ domainList.push(newDomain.trim()); newDomain = ''; }"
+                            placeholder="e.g. example.com" class="ent-input flex-1 rounded px-3 py-2 text-xs">
+                        <button @click="if(newDomain.trim()){ domainList.push(newDomain.trim()); newDomain = ''; }"
+                            class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded text-xs transition-colors">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+
+                    <div class="space-y-2 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
+                        <template x-for="(domain, index) in domainList" :key="index">
+                            <div
+                                class="flex items-center justify-between p-3 bg-slate-900/50 border border-slate-800 rounded group">
+                                <span class="text-xs font-mono text-slate-300" x-text="domain"></span>
+                                <button @click="domainList.splice(index, 1)"
+                                    class="text-slate-600 hover:text-red-400 transition-colors">
+                                    <i class="fas fa-trash-alt text-xs"></i>
+                                </button>
+                            </div>
                         </template>
                         <template x-if="domainList.length === 0">
-                            <li class="p-5 text-center bg-slate-950 rounded border border-dashed border-slate-800">
-                                <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest">No Domains
-                                    Registered</p>
-                            </li>
+                            <div class="p-8 text-center border-2 border-dashed border-slate-800 rounded text-slate-600">
+                                <i class="fas fa-shield-slash mb-2 text-xl opacity-20"></i>
+                                <p class="text-[10px] font-black uppercase tracking-widest">No Domains Bound</p>
+                            </div>
                         </template>
-                    </ul>
+                    </div>
                 </div>
             </div>
 
-            <div class="p-6 border-t border-slate-700/50 bg-slate-900/30">
-                <a :href="'?action=reset_domains&id=' + (selectedLicense ? selectedLicense.id : '') + '&token=<?php echo $_SESSION['csrf_token']; ?>'"
-                    class="w-full bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold uppercase tracking-widest py-3 rounded flex items-center justify-center space-x-2 transition-colors">
-                    <i class="fas fa-sync-alt"></i>
-                    <span>Reset Bindings</span>
-                </a>
+            <div class="p-6 border-t border-slate-700/50 bg-slate-900/50 shrink-0">
+                <form method="POST">
+                    <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+                    <input type="hidden" name="id" :value="selectedLicense ? selectedLicense.id : ''">
+                    <input type="hidden" name="domains" :value="JSON.stringify(domainList)">
+                    <button type="submit" name="save_domains"
+                        class="ent-btn-primary w-full text-xs font-black uppercase tracking-widest py-3.5 rounded flex items-center justify-center space-x-2">
+                        <span>Save Lockdown Configuration</span>
+                    </button>
+                </form>
             </div>
         </div>
+    </div>
+    <a :href="'?action=reset_domains&id=' + (selectedLicense ? selectedLicense.id : '') + '&token=<?php echo $_SESSION['csrf_token']; ?>'"
+        class="w-full bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold uppercase tracking-widest py-3 rounded flex items-center justify-center space-x-2 transition-colors">
+        <i class="fas fa-sync-alt"></i>
+        <span>Reset Bindings</span>
+    </a>
+    </div>
+    </div>
     </div>
 
 </body>

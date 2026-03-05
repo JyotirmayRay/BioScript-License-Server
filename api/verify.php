@@ -69,30 +69,6 @@ try {
         $domain = 'unknown_origin';
     }
 
-    // --- DEMO / WHITELIST LOGIC ---
-    $stmt = $pdo->prepare("SELECT value FROM system_settings WHERE key = 'whitelist_domains' LIMIT 1");
-    $stmt->execute();
-    $whitelist_json = $stmt->fetchColumn();
-    $whitelist = json_decode($whitelist_json ?: '[]', true);
-
-    $is_whitelisted = in_array($domain, $whitelist) ||
-        str_ends_with($domain, '.test') ||
-        str_ends_with($domain, '.local') ||
-        $domain === 'localhost';
-
-    if ($is_whitelisted) {
-        $payload = [
-            'status' => 'active',
-            'domain' => $domain,
-            'message' => 'Demo/Test Environment - Verification Bypassed',
-            'timestamp' => time()
-        ];
-        $payload_json = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-        $signature = hash_hmac('sha256', $payload_json, SHARED_SECRET);
-        echo json_encode(['status' => 'success', 'payload' => $payload_json, 'signature' => $signature]);
-        exit;
-    }
-
     // Default Response Payload (Invalid)
     $payload = [
         'status' => 'invalid',
