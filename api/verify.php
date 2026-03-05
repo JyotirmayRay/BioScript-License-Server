@@ -242,5 +242,4 @@ catch (Throwable $e) {
         'message' => 'Internal Server Error (Logged)',
         'debug_ref' => time()
     ]);
-    exit;
-}
+ 
