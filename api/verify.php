@@ -3,10 +3,7 @@ declare(strict_types=1);
 
 // Prevent HTML Error Output (Strict API Mode)
 ini_set('display_errors', '0');
-error_reporting(0); // Suppress warnings too
-
-// SHARED SECRET is loaded from config.php (via db.php include chain)
-// Defined in: super_admin/config.php as define('SHARED_SECRET', '...')
+error_reporting(0);
 
 // Set JSON Header Immediately
 header('Content-Type: application/json');
@@ -56,7 +53,7 @@ try {
     $fingerprint = $request['fingerprint'] ?? '';
     $timestamp = $request['timestamp'] ?? 0;
 
-    // Check Replay
+    // Check Replay Attack
     if (abs(time() - $timestamp) > 300) {
         send_json_error('Request Expired (Time Drift)');
     }
@@ -90,15 +87,9 @@ try {
             'message' => 'Demo/Test Environment - Verification Bypassed',
             'timestamp' => time()
         ];
-
         $payload_json = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         $signature = hash_hmac('sha256', $payload_json, SHARED_SECRET);
-
-        echo json_encode([
-            'status' => 'success',
-            'payload' => $payload_json,
-            'signature' => $signature
-        ]);
+        echo json_encode(['status' => 'success', 'payload' => $payload_json, 'signature' => $signature]);
         exit;
     }
 
@@ -110,22 +101,18 @@ try {
     ];
 
     if (!empty($license_key)) {
-        // Query DB for the key
         $stmt = $pdo->prepare("SELECT * FROM licenses WHERE license_key = :key LIMIT 1");
         $stmt->execute([':key' => $license_key]);
         $license = $stmt->fetch();
 
         if ($license && $license['status'] === 'active') {
-
-            // Decode registered domains
-            $registered_domains = json_decode($license['registered_domains'], true);
+            $registered_domains = json_decode($license['registered_domains'] ?? '[]', true);
             if (!is_array($registered_domains)) {
                 $registered_domains = [];
             }
 
             // --- FINGERPRINT CHECK (Anti-Clone) ---
             if (!empty($license['installation_fingerprint']) && $license['installation_fingerprint'] !== $fingerprint) {
-                // Check if we should allow a re-activation or block it
                 $payload = [
                     'status' => 'invalid',
                     'reason' => 'Fingerprint Mismatch',
@@ -134,80 +121,37 @@ try {
                 ];
             }
             else {
-                // Check Domain Logic
                 if (empty($registered_domains)) {
                     // FIRST USE: Lock to this domain AND fingerprint
                     $registered_domains[] = $domain;
-
                     $update = $pdo->prepare("UPDATE licenses SET registered_domains = :domains, installation_fingerprint = :fp, last_verified_at = CURRENT_TIMESTAMP WHERE id = :id");
-                    $update->execute([
-                        ':domains' => json_encode($registered_domains),
-                        ':fp' => $fingerprint,
-                        ':id' => $license['id']
-                    ]);
-
-                    $payload = [
-                        'status' => 'active',
-                        'domain' => $domain,
-                        'message' => 'License Activated & Locked to ' . $domain,
-                        'timestamp' => time()
-                    ];
-
+                    $update->execute([':domains' => json_encode($registered_domains), ':fp' => $fingerprint, ':id' => $license['id']]);
+                    $payload = ['status' => 'active', 'domain' => $domain, 'message' => 'License Activated & Locked to ' . $domain, 'timestamp' => time()];
                 }
                 elseif (in_array($domain, $registered_domains)) {
-                    // Domain already registered -> Active
+                    // Already registered
                     $pdo->prepare("UPDATE licenses SET last_verified_at = CURRENT_TIMESTAMP WHERE id = :id")->execute([':id' => $license['id']]);
-
-                    $payload = [
-                        'status' => 'active',
-                        'domain' => $domain,
-                        'message' => 'License Valid',
-                        'timestamp' => time()
-                    ];
+                    $payload = ['status' => 'active', 'domain' => $domain, 'message' => 'License Valid', 'timestamp' => time()];
                 }
                 else {
-                    // Domain Mismatch -> Check Tier Slots
-                    if (count($registered_domains) < $license['max_domains']) {
+                    // New domain - check tier slots
+                    if (count($registered_domains) < ($license['max_domains'] ?? 1)) {
                         $registered_domains[] = $domain;
                         $update = $pdo->prepare("UPDATE licenses SET registered_domains = :domains, last_verified_at = CURRENT_TIMESTAMP WHERE id = :id");
-                        $update->execute([
-                            ':domains' => json_encode($registered_domains),
-                            ':id' => $license['id']
-                        ]);
-
-                        $payload = [
-                            'status' => 'active',
-                            'domain' => $domain,
-                            'message' => 'Additional Domain Registered',
-                            'timestamp' => time()
-                        ];
+                        $update->execute([':domains' => json_encode($registered_domains), ':id' => $license['id']]);
+                        $payload = ['status' => 'active', 'domain' => $domain, 'message' => 'Additional Domain Registered', 'timestamp' => time()];
                     }
                     else {
-                        $payload = [
-                            'status' => 'invalid',
-                            'reason' => 'Domain Mismatch',
-                            'message' => 'License locked to: ' . implode(', ', $registered_domains),
-                            'timestamp' => time()
-                        ];
+                        $payload = ['status' => 'invalid', 'reason' => 'Domain Mismatch', 'message' => 'License locked to: ' . implode(', ', $registered_domains), 'timestamp' => time()];
                     }
                 }
             }
         }
         elseif ($license && $license['status'] === 'banned') {
-            $payload = [
-                'status' => 'invalid',
-                'reason' => 'Banned',
-                'message' => 'License suspended by authority.',
-                'timestamp' => time()
-            ];
+            $payload = ['status' => 'invalid', 'reason' => 'Banned', 'message' => 'License suspended by authority.', 'timestamp' => time()];
         }
         elseif ($license && $license['status'] === 'expired') {
-            $payload = [
-                'status' => 'invalid',
-                'reason' => 'Expired',
-                'message' => 'License has expired.',
-                'timestamp' => time()
-            ];
+            $payload = ['status' => 'invalid', 'reason' => 'Expired', 'message' => 'License has expired.', 'timestamp' => time()];
         }
     }
 
@@ -215,31 +159,23 @@ try {
     $payload_json = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     $signature = hash_hmac('sha256', $payload_json, SHARED_SECRET);
 
-    echo json_encode([
-        'status' => 'success',
-        'payload' => $payload_json,
-        'signature' => $signature
-    ]);
+    echo json_encode(['status' => 'success', 'payload' => $payload_json, 'signature' => $signature]);
     exit;
 
 }
 catch (Throwable $e) {
-    // Phase 1: Enable Safe Error Logging
+    // Safe Error Logging - never expose details publicly
     $log_dir = __DIR__ . '/../logs';
     if (!is_dir($log_dir)) {
         @mkdir($log_dir, 0755, true);
     }
-    $err_log = "[" . date('Y-m-d H:i:s') . "] API 500 Error: " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine() . "\n";
+    $err_log = "[" . date('Y-m-d H:i:s') . "] API Exception [" . get_class($e) . "]: " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine() . "\n";
     @file_put_contents($log_dir . '/api_error.log', $err_log, FILE_APPEND);
     error_log($err_log);
 
-    // Phase 5: Error Handling - Ensure JSON response even on fatal crash
     if (!headers_sent()) {
         header('Content-Type: application/json');
     }
-    echo json_encode([
-        'status' => 'error',
-        'message' => 'Internal Server Error (Logged)',
-        'debug_ref' => time()
-    ]);
- 
+    echo json_encode(['status' => 'error', 'message' => 'Internal Server Error', 'debug_ref' => time()]);
+    exit;
+}
