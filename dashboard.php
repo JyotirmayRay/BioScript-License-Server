@@ -48,10 +48,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_key'])) {
             ':tier' => $tier,
             ':max' => $max_domains
         ]);
-        $success = "Generated Key: $key";
+        $_SESSION['ls_success'] = "Generated Key: $key";
     } catch (PDOException $e) {
-        $error = "Error generating key: " . $e->getMessage();
+        $_SESSION['ls_error'] = "Error generating key: " . $e->getMessage();
     }
+    header('Location: dashboard.php');
+    exit;
 }
 
 // Upgrade Tier
@@ -167,6 +169,11 @@ if ($health && !empty($health['last_received_at'])) {
         $webhook_status = 'active';
     }
 }
+
+// Flash Messages
+$success = $_SESSION['ls_success'] ?? null;
+$error = $_SESSION['ls_error'] ?? null;
+unset($_SESSION['ls_success'], $_SESSION['ls_error']);
 ?>
 <!DOCTYPE html>
 <html lang="en" class="dark">
@@ -191,7 +198,7 @@ if ($health && !empty($health['last_received_at'])) {
                     }
                 }
             }
-        }
+    }
     </script>
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
