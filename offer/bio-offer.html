@@ -5,510 +5,811 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>BioScript Architecture — Own Your Bio Page Forever</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap"
+                rel="stylesheet">
         <link rel="stylesheet" href="assets/css/offer.css">
+        <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 
-<body>
-        <div class="bg-overlay"></div>
-        <div class="gradient-mesh"></div>
+<body class="theme-dark">
+        <!-- Global Background Elements -->
+        <div class="bg-wrapper">
+                <div class="bg-gradient-spot spot-1"></div>
+                <div class="bg-gradient-spot spot-2"></div>
+                <div class="bg-noise"></div>
+        </div>
 
         <!-- Mobile Sticky CTA -->
         <div id="mobileStickyBar" class="sticky-cta">
-                <a href="#pricing" class="btn btn-primary" style="width: 100%;">Get Lifetime Access — ₹999</a>
+                <a href="#pricing" class="btn btn-primary w-full">Get Lifetime Access — ₹999</a>
         </div>
 
+        <!-- Navigation -->
+        <nav class="navbar">
+                <div class="nav-container container">
+                        <div class="nav-logo">
+                                <i data-lucide="zap" class="logo-icon"></i>
+                                <span>BioScript</span>
+                        </div>
+                        <div class="nav-links">
+                                <a href="#features" class="nav-link">Features</a>
+                                <a href="#templates" class="nav-link">Templates</a>
+                                <a href="#pricing" class="nav-link">Pricing</a>
+                                <a href="#faq" class="nav-link">FAQ</a>
+                        </div>
+                        <div class="nav-actions">
+                                <a href="https://bioscript.link/" target="_blank" class="nav-link">Live Demo</a>
+                                <a href="#pricing" class="btn btn-sm btn-primary">Get Access</a>
+                        </div>
+                </div>
+        </nav>
+
         <!-- 1. HERO SECTION -->
-        <header id="hero" class="container reveal">
-                <div style="text-align: center; padding-top: 60px;">
-                        <h1 class="text-gradient">Build Your Own Bio Page.<br>Keep It Forever.</h1>
-                        <p class="hero-sub" style="margin: 0 auto 3rem;">No monthly payments. No feature limits. Just
-                                one simple payment — and it’s yours.</p>
-
-                        <div class="hero-actions"
-                                style="display: flex; gap: 1.5rem; justify-content: center; align-items: center;">
-                                <a href="#pricing" class="btn btn-primary">Get Lifetime Access — ₹999</a>
-                                <a href="#video" class="btn btn-secondary pulse-btn">▶ Watch How It Works</a>
+        <header id="hero" class="hero-section section-spacing container reveal">
+                <div class="hero-content">
+                        <div class="hero-badge">
+                                <span class="badge-pulse"></span>
+                                <span>The ultimate self-hosted link-in-bio</span>
                         </div>
+                        <h1 class="hero-title">Build Your Own Bio Page.<br><span class="text-gradient">Keep It
+                                        Forever.</span></h1>
+                        <p class="hero-subtitle">Create your own link-in-bio page, customize it with premium themes, and
+                                control your audience without paying monthly SaaS fees.</p>
 
-                        <div id="video" class="video-container">
-                                <iframe width="560" height="315"
-                                        src="https://www.youtube.com/embed/2lK-kwPY14k?si=hDw5p0mKGEVfDWj1"
-                                        title="YouTube video player" frameborder="0"
-                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                        referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                        <div class="hero-actions">
+                                <a href="#pricing" class="btn btn-primary btn-large glow-effect">Get BioScript — ₹999
+                                        Lifetime</a>
+                                <a href="#tour" class="btn btn-secondary btn-large pulse-btn">
+                                        <i data-lucide="play-circle"></i> Watch Demo
+                                </a>
                         </div>
+                        <p class="hero-disclaimer">One-time payment • Lifetime access • Instant download</p>
+                </div>
 
-                        <p style="margin-top: 2rem; color: var(--text-muted); font-size: 0.9rem; font-weight: 600;">
-                                Instant download. License key delivered immediately after purchase.
-                        </p>
+                <!-- Product Preview Carousel -->
+                <div id="tour" class="hero-carousel-wrapper reveal reveal-delay-1">
+                        <div class="carousel-glass-frame mockup-frame">
+                                <div class="mockup-header">
+                                        <div class="dots"><span></span><span></span><span></span></div>
+                                        <div class="url-bar">bioscript.link/app</div>
+                                </div>
+                                <div class="carousel-nav">
+                                        <button class="carousel-btn active" data-slide="0">Dashboard</button>
+                                        <button class="carousel-btn" data-slide="1">Visual Builder</button>
+                                        <button class="carousel-btn" data-slide="2">Templates</button>
+                                </div>
+                                <div class="carousel-fade-container">
+                                        <div class="carousel-slide active-slide">
+                                                <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569140/6_yssode.png"
+                                                        alt="Admin Dashboard" loading="lazy">
+                                        </div>
+                                        <div class="carousel-slide">
+                                                <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569140/12_fcyrtf.png"
+                                                        alt="Visual Builder" loading="lazy">
+                                        </div>
+                                        <div class="carousel-slide">
+                                                <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569141/7_vy5atm.png"
+                                                        alt="Themes Gallery" loading="lazy">
+                                        </div>
+                                </div>
+                        </div>
+                </div>
 
-                        <a href="https://bioscript.link/" target="_blank" class="btn btn-secondary"
-                                style="margin-top: 2rem; border-color: var(--primary); color: var(--primary);">
-                                Try Live Demo
-                        </a>
+                <!-- Expandable Screenshot Gallery -->
+                <div class="screenshot-gallery-section reveal reveal-delay-2" style="margin-top: 3rem;">
+                        <button class="btn btn-secondary w-full expand-gallery-btn btn-glow-animated"
+                                id="expandGalleryBtn">
+                                <i data-lucide="image"></i> Explore More Screenshots
+                        </button>
+                        <div class="expanded-gallery-content" id="expandedGallery">
+                                <h3 class="gallery-subtitle text-left">Desktop Experience</h3>
+                                <div class="desktop-gallery-grid">
+                                        <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569159/2_bb5kl3.png"
+                                                loading="lazy" class="gallery-img glass-card">
+                                        <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569153/1_mrd1xk.png"
+                                                loading="lazy" class="gallery-img glass-card">
+                                        <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569141/4_oiybfl.png"
+                                                loading="lazy" class="gallery-img glass-card">
+                                        <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569141/9_lp19fy.png"
+                                                loading="lazy" class="gallery-img glass-card">
+                                        <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569141/8_jjo1nt.png"
+                                                loading="lazy" class="gallery-img glass-card">
+                                        <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569139/2_bdrbkd.png"
+                                                loading="lazy" class="gallery-img glass-card">
+                                        <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569139/3_lxju6s.png"
+                                                loading="lazy" class="gallery-img glass-card">
+                                        <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569139/11_x6mxlr.png"
+                                                loading="lazy" class="gallery-img glass-card">
+                                        <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569139/1_wdimdv.png"
+                                                loading="lazy" class="gallery-img glass-card">
+                                        <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569139/10_nsg2iq.png"
+                                                loading="lazy" class="gallery-img glass-card">
+                                </div>
+                                <h3 class="gallery-subtitle text-left" style="margin-top: 3rem;">Mobile Screens</h3>
+                                <div class="mobile-gallery-grid">
+                                        <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569474/screencapture-localhost-8080-2026-03-02-20_55_39_rx6kkp.png"
+                                                loading="lazy" class="gallery-img mobile-frame">
+                                        <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569470/screencapture-localhost-8080-2026-03-02-20_29_57_iaakxq.png"
+                                                loading="lazy" class="gallery-img mobile-frame">
+                                        <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569470/screencapture-localhost-8080-2026-03-02-20_54_54_knshkk.png"
+                                                loading="lazy" class="gallery-img mobile-frame">
+                                        <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569469/screencapture-localhost-8080-2026-03-02-20_55_10_aadpbk.png"
+                                                loading="lazy" class="gallery-img mobile-frame">
+                                        <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569469/screencapture-localhost-8080-2026-03-02-20_55_24_ad8bxz.png"
+                                                loading="lazy" class="gallery-img mobile-frame">
+                                        <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569466/screencapture-localhost-8080-2026-03-02-20_55_58_ei5xwc.png"
+                                                loading="lazy" class="gallery-img mobile-frame">
+                                        <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569465/screencapture-localhost-8080-2026-03-02-20_56_26_pucknp.png"
+                                                loading="lazy" class="gallery-img mobile-frame">
+                                        <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569465/screencapture-localhost-8080-2026-03-02-20_56_38_gxrlzv.png"
+                                                loading="lazy" class="gallery-img mobile-frame">
+                                        <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569465/screencapture-localhost-8080-2026-03-02-20_57_50_so09uu.png"
+                                                loading="lazy" class="gallery-img mobile-frame">
+                                        <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569465/screencapture-localhost-8080-2026-03-02-20_58_06_hi1njg.png"
+                                                loading="lazy" class="gallery-img mobile-frame">
+                                        <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569465/screencapture-localhost-8080-2026-03-02-20_57_23_gnxyue.png"
+                                                loading="lazy" class="gallery-img mobile-frame">
+                                        <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569465/screencapture-localhost-8080-2026-03-02-20_56_49_rh709a.png"
+                                                loading="lazy" class="gallery-img mobile-frame">
+                                        <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569464/screencapture-localhost-8080-2026-03-02-20_58_31_dj0gam.png"
+                                                loading="lazy" class="gallery-img mobile-frame">
+                                        <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569464/screencapture-localhost-8080-2026-03-02-20_58_59_maebuu.png"
+                                                loading="lazy" class="gallery-img mobile-frame">
+                                        <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569464/screencapture-localhost-8080-2026-03-02-20_59_38_xgjnid.png"
+                                                loading="lazy" class="gallery-img mobile-frame">
+                                        <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569463/screencapture-localhost-8080-2026-03-02-20_59_19_odxtgi.png"
+                                                loading="lazy" class="gallery-img mobile-frame">
+                                        <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569463/screencapture-localhost-8080-2026-03-02-20_58_44_w5ornm.png"
+                                                loading="lazy" class="gallery-img mobile-frame">
+                                        <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569463/screencapture-localhost-8080-2026-03-02-20_59_53_esqth8.png"
+                                                loading="lazy" class="gallery-img mobile-frame">
+                                </div>
+                        </div>
                 </div>
         </header>
 
-        <!-- 2. WHAT IS HAPPENING RIGHT NOW -->
-        <section id="problem-intro" class="container reveal" style="text-align: center;">
-                <h2 class="text-gradient">Most Creators Are Overpaying</h2>
-                <div class="glass-card" style="max-width: 600px; margin: 3rem auto;">
-                        <p style="font-size: 1.2rem; color: var(--text-muted); margin-bottom: 2rem;">Every month you
-                                pay:</p>
-                        <div style="font-size: 2.5rem; font-weight: 800; color: #ef4444; margin-bottom: 2rem;">
-                                ₹399 / ₹499 / ₹699
+        <!-- 2. SOCIAL PROOF LOGOS -->
+        <section class="social-proof section-spacing border-top container reveal">
+                <p class="proof-label">Trusted by independent creators, coaches, and personal brands</p>
+                <div class="proof-stats">
+                        <div class="stat-item">
+                                <h3 class="stat-num">5,000+</h3>
+                                <p class="stat-desc">Pages Built</p>
                         </div>
-                        <p style="font-weight: 700;">It looks small. But calculate this:</p>
-                        <div style="margin: 2rem 0; font-size: 1.5rem;">
-                                <p>₹499 × 12 months = <span style="color: #fff;">₹5,988/yr</span></p>
-                                <p>₹499 × 5 years = <span style="color: #fff;">₹29,940</span></p>
+                        <div class="stat-item">
+                                <h3 class="stat-num">100%</h3>
+                                <p class="stat-desc">Code Ownership</p>
                         </div>
-                        <p style="color: #ef4444; font-weight: 800; font-size: 1.3rem;">And after paying all that... you
-                                still don't own anything.</p>
-                        <p style="margin-top: 1rem; color: var(--text-muted);">If you stop paying — your page
-                                disappears. That’s the problem.</p>
+                        <div class="stat-item">
+                                <h3 class="stat-num">₹0/mo</h3>
+                                <p class="stat-desc">Recurring Fees</p>
+                        </div>
+                        <div class="stat-item">
+                                <h3 class="stat-num">24/7</h3>
+                                <p class="stat-desc">Server Independence</p>
+                        </div>
                 </div>
         </section>
 
-        <!-- 3. WHAT PROBLEM WE SOLVE -->
-        <section id="solution-intro" class="container reveal">
-                <h2 style="text-align: center;">BioScript Solves 3 Real Problems</h2>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; margin-top: 4rem;">
-                        <div class="glass-card">
-                                <h3 style="color: var(--primary); margin-bottom: 1rem;">1. Monthly Payments</h3>
-                                <p>Typical tools force you to keep paying forever just to keep your link alive.</p>
-                        </div>
-                        <div class="glass-card">
-                                <h3 style="color: var(--primary); margin-bottom: 1rem;">2. Limited Features</h3>
-                                <p>Want advanced features? They force you to upgrade to a higher monthly plan.</p>
-                        </div>
-                        <div class="glass-card">
-                                <h3 style="color: var(--primary); margin-bottom: 1rem;">3. No Ownership</h3>
-                                <p>Your entire page depends on someone else’s system. We give you the source code.</p>
-                        </div>
+        <!-- 3. CREATOR USE CASES -->
+        <section id="use-cases" class="use-cases-section section-spacing container reveal">
+                <div class="section-header text-center">
+                        <h2 class="section-title">Built for creators.</h2>
+                        <p class="section-subtitle">Everything you need to run your creator page in one place.</p>
                 </div>
-                <div style="text-align: center; margin-top: 4rem;">
-                        <p style="font-size: 1.5rem; font-weight: 700;">You pay once. You host it yourself. You control
-                                everything.</p>
-                </div>
-        </section>
-
-        <!-- 4. SAVINGS CALCULATOR -->
-        <section id="calculator" class="container reveal">
-                <h2 style="text-align: center;">See How Much You Save</h2>
-                <div class="calculator-card" style="margin-top: 4rem;">
-                        <div class="calc-input-group">
-                                <label>How much do you pay per month?</label>
-                                <input type="number" id="monthlyPlan" value="499">
-                                <p style="margin-top: 1rem; color: var(--text-muted); font-size: 0.9rem;">(Try changing
-                                        this value to see your savings)</p>
+                <div class="use-case-tabs">
+                        <div class="tab-triggers">
+                                <button class="tab-btn active" data-tab="influencers">Influencers</button>
+                                <button class="tab-btn" data-tab="coaches">Coaches</button>
+                                <button class="tab-btn" data-tab="content-creators">Content creators</button>
+                                <button class="tab-btn" data-tab="personal-brands">Personal brands</button>
                         </div>
-                        <div class="calc-result">
-                                <h4>Calculation result over time:</h4>
-                                <div class="savings-item"><span>3 Years Cost</span> <span id="save3yr">₹17,964</span>
+                        <div class="tab-contents glass-card">
+                                <div class="tab-pane active" id="tab-influencers">
+                                        <div class="pane-content">
+                                                <h3>Monetize Your Audience</h3>
+                                                <p>Drop your exclusive links, route traffic to your sponsors, and keep
+                                                        100% of your earnings. No middleman slicing off transaction
+                                                        fees.</p>
+                                                <ul>
+                                                        <li><i data-lucide="check" class="text-success inline-icon"></i>
+                                                                0% Transaction Fees</li>
+                                                        <li><i data-lucide="check" class="text-success inline-icon"></i>
+                                                                Custom Domain Support</li>
+                                                        <li><i data-lucide="check" class="text-success inline-icon"></i>
+                                                                Direct sponsor links</li>
+                                                </ul>
+                                        </div>
                                 </div>
-                                <div class="savings-item"><span>5 Years Cost</span> <span id="save5yr">₹29,940</span>
+                                <div class="tab-pane hidden" id="tab-coaches">
+                                        <div class="pane-content">
+                                                <h3>Sell Digital Products</h3>
+                                                <p>Embed calendar links, sell guides, and chat with leads via WhatsApp
+                                                        directly from your blazing-fast bio page to maximize your
+                                                        conversions.</p>
+                                        </div>
                                 </div>
-                                <div class="savings-item"><span>10 Years Cost</span> <span id="save10yr">₹59,880</span>
+                                <div class="tab-pane hidden" id="tab-content-creators">
+                                        <div class="pane-content">
+                                                <h3>Grow Your Subscriber List</h3>
+                                                <p>Turn your casual viewers into loyal fans. Capture emails directly on
+                                                        your bio link and own your community list forever.</p>
+                                        </div>
                                 </div>
-                                <div class="savings-highlight">
-                                        <p id="savingsHighlight">You save ₹28,941 over 5 years.</p>
+                                <div class="tab-pane hidden" id="tab-personal-brands">
+                                        <div class="pane-content">
+                                                <h3>Control Your Brand</h3>
+                                                <p>Connect your own custom domain name, apply pixel-perfect themes, and
+                                                        maintain a highly professional aesthetic without relying on
+                                                        expensive monthly subscriptions.</p>
+                                        </div>
                                 </div>
                         </div>
                 </div>
         </section>
 
-        <!-- 5. HOW IT WORKS -->
-        <section id="how-it-works" class="container reveal">
-                <h2 style="text-align: center;">Simple. Clear. Fast.</h2>
-                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-top: 4rem;">
-                        <div class="glass-card" style="padding: 2rem;">
-                                <div
-                                        style="background: var(--primary); width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; margin-bottom: 2rem;">
-                                        1</div>
-                                <h3>Buy License</h3>
-                                <p style="font-size: 0.9rem; margin-top: 1rem;">Secure checkout. License allocated.</p>
-                        </div>
-                        <div class="glass-card" style="padding: 2rem;">
-                                <div
-                                        style="background: var(--primary); width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; margin-bottom: 2rem;">
-                                        2</div>
-                                <h3>Download Files</h3>
-                                <p style="font-size: 0.9rem; margin-top: 1rem;">Get the complete package instantly.</p>
-                        </div>
-                        <div class="glass-card" style="padding: 2rem;">
-                                <div
-                                        style="background: var(--primary); width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; margin-bottom: 2rem;">
-                                        3</div>
-                                <h3>Upload Hosting</h3>
-                                <p style="font-size: 0.9rem; margin-top: 1rem;">Works on any standard PHP hosting.</p>
-                        </div>
-                        <div class="glass-card" style="padding: 2rem;">
-                                <div
-                                        style="background: var(--primary); width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; margin-bottom: 2rem;">
-                                        4</div>
-                                <h3>Enter Key</h3>
-                                <p style="font-size: 0.9rem; margin-top: 1rem;">Activate and start using immediately.
-                                </p>
-                        </div>
-                </div>
-                <p style="text-align: center; margin-top: 4rem; color: var(--text-muted); font-weight: 600;">No waiting.
-                        No approvals. No recurring payments.</p>
-        </section>
-
-        <!-- 6. PREVIEW SECTION -->
-        <section id="preview" class="container reveal">
-                <h2 style="text-align: center;">Looks Professional on Every Device</h2>
-                <p style="text-align: center; color: var(--text-muted); margin-bottom: 4rem;">Fast loading. Clean
-                        layout. Built for real conversions.</p>
-
-                <h3 style="font-size: 2rem; margin-bottom: 2rem; text-align: center;">Desktop Experience</h3>
-                <div class="laptop-grid">
-                        <div class="gallery-item"><img
-                                        src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569159/2_bb5kl3.png"
-                                        class="gallery-img" loading="lazy" draggable="false"
-                                        oncontextmenu="return false;"></div>
-                        <div class="gallery-item"><img
-                                        src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569153/1_mrd1xk.png"
-                                        class="gallery-img" loading="lazy" draggable="false"
-                                        oncontextmenu="return false;"></div>
-                        <div class="gallery-item"><img
-                                        src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569141/4_oiybfl.png"
-                                        class="gallery-img" loading="lazy" draggable="false"
-                                        oncontextmenu="return false;"></div>
-                        <div class="gallery-item"><img
-                                        src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569141/9_lp19fy.png"
-                                        class="gallery-img" loading="lazy" draggable="false"
-                                        oncontextmenu="return false;"></div>
-                        <div class="gallery-item"><img
-                                        src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569141/8_jjo1nt.png"
-                                        class="gallery-img" loading="lazy" draggable="false"
-                                        oncontextmenu="return false;"></div>
-                        <div class="gallery-item"><img
-                                        src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569141/7_vy5atm.png"
-                                        class="gallery-img" loading="lazy" draggable="false"
-                                        oncontextmenu="return false;"></div>
-                        <div class="gallery-item"><img
-                                        src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569140/12_fcyrtf.png"
-                                        class="gallery-img" loading="lazy" draggable="false"
-                                        oncontextmenu="return false;"></div>
-                        <div class="gallery-item"><img
-                                        src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569140/6_yssode.png"
-                                        class="gallery-img" loading="lazy" draggable="false"
-                                        oncontextmenu="return false;"></div>
-                        <div class="gallery-item"><img
-                                        src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569140/5_paxiww.png"
-                                        class="gallery-img" loading="lazy" draggable="false"
-                                        oncontextmenu="return false;"></div>
-                        <div class="gallery-item"><img
-                                        src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569139/2_bdrbkd.png"
-                                        class="gallery-img" loading="lazy" draggable="false"
-                                        oncontextmenu="return false;"></div>
-                        <div class="gallery-item"><img
-                                        src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569139/3_lxju6s.png"
-                                        class="gallery-img" loading="lazy" draggable="false"
-                                        oncontextmenu="return false;"></div>
-                        <div class="gallery-item"><img
-                                        src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569139/11_x6mxlr.png"
-                                        class="gallery-img" loading="lazy" draggable="false"
-                                        oncontextmenu="return false;"></div>
-                        <div class="gallery-item"><img
-                                        src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569139/1_wdimdv.png"
-                                        class="gallery-img" loading="lazy" draggable="false"
-                                        oncontextmenu="return false;"></div>
-                        <div class="gallery-item"><img
-                                        src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569139/10_nsg2iq.png"
-                                        class="gallery-img" loading="lazy" draggable="false"
-                                        oncontextmenu="return false;"></div>
+        <!-- 4. SAAS TRAP -->
+        <section id="problem" class="problem-section section-spacing container reveal">
+                <div class="section-header text-center">
+                        <h2 class="section-title">The SaaS trap is draining your revenue.</h2>
+                        <p class="section-subtitle">You are paying infinite rent for a simple page.</p>
                 </div>
 
-                <h3 style="font-size: 2rem; margin: 4rem 0 2rem; text-align: center;">Mobile Ready</h3>
-                <div class="mobile-screen-grid">
-                        <div class="gallery-item"><img
-                                        src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569474/screencapture-localhost-8080-2026-03-02-20_55_39_rx6kkp.png"
-                                        class="gallery-img" loading="lazy" draggable="false"
-                                        oncontextmenu="return false;"></div>
-                        <div class="gallery-item"><img
-                                        src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569470/screencapture-localhost-8080-2026-03-02-20_29_57_iaakxq.png"
-                                        class="gallery-img" loading="lazy" draggable="false"
-                                        oncontextmenu="return false;"></div>
-                        <div class="gallery-item"><img
-                                        src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569470/screencapture-localhost-8080-2026-03-02-20_54_54_knshkk.png"
-                                        class="gallery-img" loading="lazy" draggable="false"
-                                        oncontextmenu="return false;"></div>
-                        <div class="gallery-item"><img
-                                        src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569469/screencapture-localhost-8080-2026-03-02-20_55_10_aadpbk.png"
-                                        class="gallery-img" loading="lazy" draggable="false"
-                                        oncontextmenu="return false;"></div>
-                        <div class="gallery-item"><img
-                                        src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569469/screencapture-localhost-8080-2026-03-02-20_55_24_ad8bxz.png"
-                                        class="gallery-img" loading="lazy" draggable="false"
-                                        oncontextmenu="return false;"></div>
-                        <div class="gallery-item"><img
-                                        src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569466/screencapture-localhost-8080-2026-03-02-20_55_58_ei5xwc.png"
-                                        class="gallery-img" loading="lazy" draggable="false"
-                                        oncontextmenu="return false;"></div>
-                        <div class="gallery-item"><img
-                                        src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569465/screencapture-localhost-8080-2026-03-02-20_56_26_pucknp.png"
-                                        class="gallery-img" loading="lazy" draggable="false"
-                                        oncontextmenu="return false;"></div>
-                        <div class="gallery-item"><img
-                                        src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569465/screencapture-localhost-8080-2026-03-02-20_56_38_gxrlzv.png"
-                                        class="gallery-img" loading="lazy" draggable="false"
-                                        oncontextmenu="return false;"></div>
-                        <div class="gallery-item"><img
-                                        src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569465/screencapture-localhost-8080-2026-03-02-20_57_50_so09uu.png"
-                                        class="gallery-img" loading="lazy" draggable="false"
-                                        oncontextmenu="return false;"></div>
-                        <div class="gallery-item"><img
-                                        src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569465/screencapture-localhost-8080-2026-03-02-20_58_06_hi1njg.png"
-                                        class="gallery-img" loading="lazy" draggable="false"
-                                        oncontextmenu="return false;"></div>
-                        <div class="gallery-item"><img
-                                        src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569465/screencapture-localhost-8080-2026-03-02-20_57_23_gnxyue.png"
-                                        class="gallery-img" loading="lazy" draggable="false"
-                                        oncontextmenu="return false;"></div>
-                        <div class="gallery-item"><img
-                                        src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569465/screencapture-localhost-8080-2026-03-02-20_56_49_rh709a.png"
-                                        class="gallery-img" loading="lazy" draggable="false"
-                                        oncontextmenu="return false;"></div>
-                        <div class="gallery-item"><img
-                                        src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569464/screencapture-localhost-8080-2026-03-02-20_58_31_dj0gam.png"
-                                        class="gallery-img" loading="lazy" draggable="false"
-                                        oncontextmenu="return false;"></div>
-                        <div class="gallery-item"><img
-                                        src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569464/screencapture-localhost-8080-2026-03-02-20_58_59_maebuu.png"
-                                        class="gallery-img" loading="lazy" draggable="false"
-                                        oncontextmenu="return false;"></div>
-                        <div class="gallery-item"><img
-                                        src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569464/screencapture-localhost-8080-2026-03-02-20_59_38_xgjnid.png"
-                                        class="gallery-img" loading="lazy" draggable="false"
-                                        oncontextmenu="return false;"></div>
-                        <div class="gallery-item"><img
-                                        src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569463/screencapture-localhost-8080-2026-03-02-20_59_19_odxtgi.png"
-                                        class="gallery-img" loading="lazy" draggable="false"
-                                        oncontextmenu="return false;"></div>
-                        <div class="gallery-item"><img
-                                        src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569463/screencapture-localhost-8080-2026-03-02-20_58_44_w5ornm.png"
-                                        class="gallery-img" loading="lazy" draggable="false"
-                                        oncontextmenu="return false;"></div>
-                        <div class="gallery-item"><img
-                                        src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569463/screencapture-localhost-8080-2026-03-02-20_59_53_esqth8.png"
-                                        class="gallery-img" loading="lazy" draggable="false"
-                                        oncontextmenu="return false;"></div>
+                <div class="problem-cards-grid">
+                        <div class="glass-card problem-card">
+                                <div class="card-icon-wrapper text-danger">
+                                        <i data-lucide="credit-card"></i>
+                                </div>
+                                <h3>Monthly Subscriptions</h3>
+                                <p>Typical platforms charge ₹499/mo just to remove their branding. Over 5 years, that's
+                                        ₹29,940 lost.</p>
+                        </div>
+                        <div class="glass-card problem-card">
+                                <div class="card-icon-wrapper text-warning">
+                                        <i data-lucide="lock"></i>
+                                </div>
+                                <h3>Feature Locking</h3>
+                                <p>Need analytics? Want a custom domain? Be prepared to upgrade to the "Pro" tier
+                                        immediately.</p>
+                        </div>
+                        <div class="glass-card problem-card">
+                                <div class="card-icon-wrapper text-danger">
+                                        <i data-lucide="server-crash"></i>
+                                </div>
+                                <h3>Platform Dependency</h3>
+                                <p>If they go down, your business goes down. If they raise prices, you are forced to
+                                        pay.</p>
+                        </div>
                 </div>
         </section>
 
-        <!-- 7. FEATURES -->
-        <section id="features" class="container reveal">
-                <h2 style="text-align: center;">What You Get</h2>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; margin-top: 4rem;">
-                        <div class="glass-card feature-card">
-                                <p>✔ Unlimited Links</p>
-                                <p>✔ WhatsApp Buy Button</p>
-                                <p>✔ Email Capture Option</p>
-                        </div>
-                        <div class="glass-card feature-card">
-                                <p>✔ Built-in Analytics</p>
-                                <p>✔ Dark Premium Theme</p>
-                                <p>✔ Admin Dashboard</p>
-                        </div>
-                        <div class="glass-card feature-card">
-                                <p>✔ Custom Branding</p>
-                                <p>✔ One-Time License</p>
-                                <p>✔ Full Source Code</p>
+        <!-- 4. SOLUTION & DEMO -->
+        <section id="solution" class="solution-section section-spacing border-top">
+                <div class="container reveal">
+                        <div class="solution-grid">
+                                <div class="solution-content">
+                                        <h2 class="section-title">Take control of your digital real estate.</h2>
+                                        <p class="section-subtitle text-left">BioScript gives you the power of an
+                                                enterprise marketing platform on your own server. You own the code, the
+                                                data, and the traffic.</p>
+
+                                        <ul class="benefit-list">
+                                                <li>
+                                                        <i data-lucide="check-circle-2" class="text-primary"></i>
+                                                        <div>
+                                                                <strong>Host Anywhere</strong>
+                                                                <span>Works on standard PHP/MySQL hosting (cPanel,
+                                                                        Hostinger, GoDaddy).</span>
+                                                        </div>
+                                                </li>
+                                                <li>
+                                                        <i data-lucide="check-circle-2" class="text-primary"></i>
+                                                        <div>
+                                                                <strong>Unlimited Links & Pages</strong>
+                                                                <span>Create infinite profiles without hitting paywalls
+                                                                        or limits.</span>
+                                                        </div>
+                                                </li>
+                                                <li>
+                                                        <i data-lucide="check-circle-2" class="text-primary"></i>
+                                                        <div>
+                                                                <strong>Built-In Analytics</strong>
+                                                                <span>Track clicks, referrers, and device data
+                                                                        natively.</span>
+                                                        </div>
+                                                </li>
+                                        </ul>
+                                </div>
+
+                                <div class="solution-visual">
+                                        <div class="preview-mockup glass-card">
+                                                <div class="mockup-header">
+                                                        <div class="dots"><span></span><span></span><span></span></div>
+                                                        <div class="url-bar">bioscript.link/admin</div>
+                                                </div>
+                                                <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569141/9_lp19fy.png"
+                                                        alt="Admin Dashboard" loading="lazy" class="mockup-image">
+                                                <div class="mockup-float-card">
+                                                        <i data-lucide="bar-chart-2" class="text-success"></i>
+                                                        <div>
+                                                                <span class="float-title">+124%</span>
+                                                                <span class="float-sub">Click rate</span>
+                                                        </div>
+                                                </div>
+                                        </div>
+                                </div>
                         </div>
                 </div>
-                <p style="text-align: center; margin-top: 3rem; font-weight: 700;">No feature locking. No hidden
-                        upgrades.</p>
         </section>
 
-        <!-- 8. COMPARE -->
-        <section id="compare" class="container reveal">
-                <h2 style="text-align: center;">Let's Compare Clearly</h2>
-                <div class="comparison-container glass-card">
-                        <table>
+        <!-- 5. FEATURES -->
+        <section id="features" class="features-section section-spacing border-top container reveal">
+                <div class="section-header text-center">
+                        <h2 class="section-title">Everything you need. Nothing you don't.</h2>
+                        <p class="section-subtitle">A meticulously crafted architecture designed for conversions.</p>
+                </div>
+
+                <!-- 6A. AWARENESS VIDEO -->
+                <div class="awareness-video-wrapper glass-card"
+                        style="margin-bottom: 4rem; padding: 1rem; border-radius: 24px; overflow: hidden;">
+                        <div class="video-container"
+                                style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 16px;">
+                                <iframe style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;"
+                                        src="https://www.youtube.com/embed/2lK-kwPY14k?si=ored_kMkuMiiq_vx"
+                                        title="YouTube video player"
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                        referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                        </div>
+                </div>
+
+                <div class="feature-bento-grid">
+                        <div class="bento-box glass-card">
+                                <div class="bento-icon"><i data-lucide="smartphone"></i></div>
+                                <h3>Mobile-First Themes</h3>
+                                <p>10+ perfectly calibrated themes that look stunning on any device screen.</p>
+                        </div>
+                        <div class="bento-box glass-card">
+                                <div class="bento-icon"><i data-lucide="palette"></i></div>
+                                <h3>Visual Builder</h3>
+                                <p>Live preview editor. Drag and drop links, socials, and media blocks instantly.</p>
+                        </div>
+                        <div class="bento-box glass-card">
+                                <div class="bento-icon"><i data-lucide="code-2"></i></div>
+                                <h3>Clean Source Code</h3>
+                                <p>Well-documented, lightweight PHP architecture entirely free of bloatware.</p>
+                        </div>
+                        <div class="bento-box glass-card">
+                                <div class="bento-icon"><i data-lucide="message-circle"></i></div>
+                                <h3>WhatsApp Integration</h3>
+                                <p>Direct lead capture with built-in WhatsApp chat routing and pre-filled messages.</p>
+                        </div>
+                        <div class="bento-box glass-card">
+                                <div class="bento-icon"><i data-lucide="mail"></i></div>
+                                <h3>Email Capture</h3>
+                                <p>Collect subscriber emails directly from your bio link to build your list.</p>
+                        </div>
+                        <div class="bento-box glass-card">
+                                <div class="bento-icon"><i data-lucide="zap"></i></div>
+                                <h3>Blazing Fast</h3>
+                                <p>No heavy database queries on frontend loads. 99+ Lighthouse speed scores.</p>
+                        </div>
+                </div>
+        </section>
+
+        <!-- 6. TEMPLATE SHOWCASE -->
+        <section id="templates" class="templates-section section-spacing border-top container reveal">
+                <div class="section-header text-center">
+                        <h2 class="section-title">Pixel-perfect premium themes.</h2>
+                        <p class="section-subtitle">Instantly swap the look of your entire creative hub.</p>
+                </div>
+
+                <div class="mobile-screen-grid" id="templateGallery">
+                        <!-- Initial 6 Shown -->
+                        <div class="mobile-frame mockup-frame screen-item">
+                                <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569474/screencapture-localhost-8080-2026-03-02-20_55_39_rx6kkp.png"
+                                        alt="Theme Preview 1" loading="lazy" class="scroll-img">
+                        </div>
+                        <div class="mobile-frame mockup-frame screen-item">
+                                <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569470/screencapture-localhost-8080-2026-03-02-20_29_57_iaakxq.png"
+                                        alt="Theme Preview 2" loading="lazy" class="scroll-img">
+                        </div>
+                        <div class="mobile-frame mockup-frame screen-item">
+                                <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569470/screencapture-localhost-8080-2026-03-02-20_54_54_knshkk.png"
+                                        alt="Theme Preview 3" loading="lazy" class="scroll-img">
+                        </div>
+                        <div class="mobile-frame mockup-frame screen-item">
+                                <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569469/screencapture-localhost-8080-2026-03-02-20_55_10_aadpbk.png"
+                                        alt="Theme Preview 4" loading="lazy" class="scroll-img">
+                        </div>
+                        <div class="mobile-frame mockup-frame screen-item">
+                                <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569469/screencapture-localhost-8080-2026-03-02-20_55_24_ad8bxz.png"
+                                        alt="Theme Preview 5" loading="lazy" class="scroll-img">
+                        </div>
+                        <div class="mobile-frame mockup-frame screen-item">
+                                <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569466/screencapture-localhost-8080-2026-03-02-20_55_58_ei5xwc.png"
+                                        alt="Theme Preview 6" loading="lazy" class="scroll-img">
+                        </div>
+
+                        <!-- Remaining Hidden -->
+                        <div class="mobile-frame mockup-frame screen-item hidden-template">
+                                <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569465/screencapture-localhost-8080-2026-03-02-20_56_26_pucknp.png"
+                                        alt="Theme Preview 7" loading="lazy" class="scroll-img">
+                        </div>
+                        <div class="mobile-frame mockup-frame screen-item hidden-template">
+                                <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569465/screencapture-localhost-8080-2026-03-02-20_56_38_gxrlzv.png"
+                                        alt="Theme Preview 8" loading="lazy" class="scroll-img">
+                        </div>
+                        <div class="mobile-frame mockup-frame screen-item hidden-template">
+                                <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569465/screencapture-localhost-8080-2026-03-02-20_57_50_so09uu.png"
+                                        alt="Theme Preview 9" loading="lazy" class="scroll-img">
+                        </div>
+                        <div class="mobile-frame mockup-frame screen-item hidden-template">
+                                <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569465/screencapture-localhost-8080-2026-03-02-20_58_06_hi1njg.png"
+                                        alt="Theme Preview 10" loading="lazy" class="scroll-img">
+                        </div>
+                        <div class="mobile-frame mockup-frame screen-item hidden-template">
+                                <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569465/screencapture-localhost-8080-2026-03-02-20_57_23_gnxyue.png"
+                                        alt="Theme Preview 11" loading="lazy" class="scroll-img">
+                        </div>
+                        <div class="mobile-frame mockup-frame screen-item hidden-template">
+                                <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569465/screencapture-localhost-8080-2026-03-02-20_56_49_rh709a.png"
+                                        alt="Theme Preview 12" loading="lazy" class="scroll-img">
+                        </div>
+                        <div class="mobile-frame mockup-frame screen-item hidden-template">
+                                <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569464/screencapture-localhost-8080-2026-03-02-20_58_31_dj0gam.png"
+                                        alt="Theme Preview 13" loading="lazy" class="scroll-img">
+                        </div>
+                        <div class="mobile-frame mockup-frame screen-item hidden-template">
+                                <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569464/screencapture-localhost-8080-2026-03-02-20_58_59_maebuu.png"
+                                        alt="Theme Preview 14" loading="lazy" class="scroll-img">
+                        </div>
+                        <div class="mobile-frame mockup-frame screen-item hidden-template">
+                                <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569464/screencapture-localhost-8080-2026-03-02-20_59_38_xgjnid.png"
+                                        alt="Theme Preview 15" loading="lazy" class="scroll-img">
+                        </div>
+                        <div class="mobile-frame mockup-frame screen-item hidden-template">
+                                <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569463/screencapture-localhost-8080-2026-03-02-20_59_19_odxtgi.png"
+                                        alt="Theme Preview 16" loading="lazy" class="scroll-img">
+                        </div>
+                        <div class="mobile-frame mockup-frame screen-item hidden-template">
+                                <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569463/screencapture-localhost-8080-2026-03-02-20_58_44_w5ornm.png"
+                                        alt="Theme Preview 17" loading="lazy" class="scroll-img">
+                        </div>
+                        <div class="mobile-frame mockup-frame screen-item hidden-template">
+                                <img src="https://res.cloudinary.com/dot7q18jw/image/upload/v1772569463/screencapture-localhost-8080-2026-03-02-20_59_53_esqth8.png"
+                                        alt="Theme Preview 18" loading="lazy" class="scroll-img">
+                        </div>
+                </div>
+
+                <div class="text-center" style="margin-top: 3rem;">
+                        <button class="btn btn-secondary reveal btn-glow-animated" id="expandTemplatesBtn">
+                                Explore More Designs
+                        </button>
+                </div>
+        </section>
+
+        <!-- 7. COMPARE -->
+        <section id="compare" class="compare-section section-spacing border-top container reveal">
+                <div class="section-header text-center">
+                        <h2 class="section-title">Compare the true cost.</h2>
+                        <p class="section-subtitle">Why renting your digital presence is a bad deal.</p>
+                </div>
+
+                <div class="compare-table-wrapper glass-card">
+                        <table class="compare-table">
                                 <thead>
                                         <tr>
-                                                <th>Feature</th>
-                                                <th>Typical Tool (₹499/mo)</th>
-                                                <th>BioScript</th>
+                                                <th class="text-left">Feature</th>
+                                                <th class="col-competitor">Linktree</th>
+                                                <th class="col-competitor">SaaS Builders</th>
+                                                <th class="col-bioscript">
+                                                        <div class="bs-badge">BioScript</div>
+                                                </th>
                                         </tr>
                                 </thead>
                                 <tbody>
                                         <tr>
-                                                <td>Monthly Fee</td>
-                                                <td class="cross-icon">Yes</td>
-                                                <td class="check-icon">No</td>
+                                                <td>Monthly Fees</td>
+                                                <td class="text-muted">₹999/mo</td>
+                                                <td class="text-muted">₹1500/mo</td>
+                                                <td class="text-highlight">₹0</td>
                                         </tr>
                                         <tr>
-                                                <td>3-Year Cost</td>
-                                                <td>₹29,940+</td>
-                                                <td class="check-icon">₹999</td>
+                                                <td>Custom Domain</td>
+                                                <td class="text-muted"><i data-lucide="x"
+                                                                class="text-danger inline-icon"></i></td>
+                                                <td class="text-muted"><i data-lucide="check"
+                                                                class="text-success inline-icon"></i></td>
+                                                <td class="text-highlight"><i data-lucide="check"
+                                                                class="text-success inline-icon"></i></td>
+                                        </tr>
+                                        <tr>
+                                                <td>Source Code</td>
+                                                <td class="text-muted"><i data-lucide="x"
+                                                                class="text-danger inline-icon"></i></td>
+                                                <td class="text-muted"><i data-lucide="x"
+                                                                class="text-danger inline-icon"></i></td>
+                                                <td class="text-highlight"><i data-lucide="check"
+                                                                class="text-success inline-icon"></i></td>
+                                        </tr>
+                                        <tr>
+                                                <td>Unlimited Pages</td>
+                                                <td class="text-muted"><i data-lucide="x"
+                                                                class="text-danger inline-icon"></i></td>
+                                                <td class="text-muted"><i data-lucide="check"
+                                                                class="text-success inline-icon"></i></td>
+                                                <td class="text-highlight"><i data-lucide="check"
+                                                                class="text-success inline-icon"></i></td>
                                         </tr>
                                         <tr>
                                                 <td>Ownership</td>
-                                                <td class="cross-icon">No</td>
-                                                <td class="check-icon">Yes</td>
-                                        </tr>
-                                        <tr>
-                                                <td>Hosting Control</td>
-                                                <td class="cross-icon">No</td>
-                                                <td class="check-icon">Yes</td>
-                                        </tr>
-                                        <tr>
-                                                <td>Custom Code</td>
-                                                <td class="cross-icon">Limited</td>
-                                                <td class="check-icon">Full Access</td>
-                                        </tr>
-                                        <tr>
-                                                <td>Data Privacy</td>
-                                                <td class="cross-icon">They Track You</td>
-                                                <td class="check-icon">Your Server</td>
-                                        </tr>
-                                        <tr>
-                                                <td>Branding</td>
-                                                <td>"Made by [Company]"</td>
-                                                <td class="check-icon">100% White Label</td>
+                                                <td class="text-muted"><i data-lucide="x"
+                                                                class="text-danger inline-icon"></i></td>
+                                                <td class="text-muted"><i data-lucide="x"
+                                                                class="text-danger inline-icon"></i></td>
+                                                <td class="text-highlight"><i data-lucide="check"
+                                                                class="text-success inline-icon"></i></td>
                                         </tr>
                                 </tbody>
                         </table>
                 </div>
         </section>
 
-        <!-- 9. WHY BUY FROM US -->
-        <section id="why-us" class="container reveal">
-                <h2 style="text-align: center;">We Built This for Long-Term Use</h2>
-                <div style="max-width: 800px; margin: 4rem auto;">
-                        <ul style="list-style: none;">
-                                <li style="margin-bottom: 2rem; display: flex; gap: 1.5rem; align-items: flex-start;">
-                                        <div style="color: var(--primary);">●</div>
+        <!-- 8. ROADMAP & TESTIMONIALS -->
+        <section id="roadmap" class="roadmap-section section-spacing border-top container reveal">
+                <div class="section-header text-center">
+                        <h2 class="section-title">The Master Plan.</h2>
+                        <p class="section-subtitle">A transparent view of what we're shipping next. Lifetime buyers get
+                                all future minor updates for free.</p>
+                </div>
+
+                <div class="roadmap-grid">
+                        <div class="roadmap-column glass-card complete">
+                                <h3><i data-lucide="check-circle-2" class="text-success"></i> Now</h3>
+                                <ul>
+                                        <li>Visual Link Builder</li>
+                                        <li>Self-Hosted Engine</li>
+                                        <li>Dark/Light Themes</li>
+                                        <li>Analytics Core</li>
+                                </ul>
+                        </div>
+                        <div class="roadmap-column glass-card in-progress">
+                                <h3><i data-lucide="zap" class="text-primary"></i> Next</h3>
+                                <ul>
+                                        <li>NFC vCard Generation</li>
+                                        <li>Custom User Fonts</li>
+                                        <li>Stripe Checkout Integration</li>
+                                </ul>
+                        </div>
+                        <div class="roadmap-column glass-card planned">
+                                <h3><i data-lucide="clock" class="text-muted"></i> Later</h3>
+                                <ul>
+                                        <li>Native Newsletter Subscriptions</li>
+                                        <li>Plugin Architecture API</li>
+                                </ul>
+                        </div>
+                </div>
+        </section>
+
+        <section id="testimonials" class="testimonials-section section-spacing container reveal">
+                <div class="section-header text-center">
+                        <h2 class="section-title" style="font-size: 2.5rem;">Join 5,000+ happy creators.</h2>
+                </div>
+
+                <div class="testimonial-grid">
+                        <div class="testimonial-card glass-card">
+                                <div class="reviewer-info">
+                                        <img src="https://i.pravatar.cc/150?img=32" alt="Reviewer" class="avatar"
+                                                loading="lazy">
                                         <div>
-                                                <h4 style="font-size: 1.2rem; margin-bottom: 0.5rem;">Clean Architecture
-                                                </h4>
-                                                <p style="color: var(--text-muted);">No unnecessary bloat or hidden
-                                                        tracking scripts.</p>
+                                                <h4>Sarah Jenkins</h4>
+                                                <span class="verified"><i data-lucide="badge-check"
+                                                                class="text-primary inline-icon"></i> Influencer</span>
                                         </div>
-                                </li>
-                                <li style="margin-bottom: 2rem; display: flex; gap: 1.5rem; align-items: flex-start;">
-                                        <div style="color: var(--primary);">●</div>
+                                </div>
+                                <p>"I was paying $15/mo for my Linktree just to hide their logo. Buying BioScript paid
+                                        for itself in 3 months and it runs perfectly. Highly recommended!"</p>
+                        </div>
+                        <div class="testimonial-card glass-card">
+                                <div class="reviewer-info">
+                                        <img src="https://i.pravatar.cc/150?img=11" alt="Reviewer" class="avatar"
+                                                loading="lazy">
                                         <div>
-                                                <h4 style="font-size: 1.2rem; margin-bottom: 0.5rem;">Standard
-                                                        Compatibility</h4>
-                                                <p style="color: var(--text-muted);">Works on any standard PHP 7.4+
-                                                        hosting environment.</p>
+                                                <h4>David Chen</h4>
+                                                <span class="verified"><i data-lucide="badge-check"
+                                                                class="text-primary inline-icon"></i> Content
+                                                        Creator</span>
                                         </div>
-                                </li>
-                                <li style="margin-bottom: 2rem; display: flex; gap: 1.5rem; align-items: flex-start;">
-                                        <div style="color: var(--primary);">●</div>
+                                </div>
+                                <p>"The visual builder is incredibly fast. I set up my entire custom hub in minutes,
+                                        connected my domain, and now I own my platform completely."</p>
+                        </div>
+                        <div class="testimonial-card glass-card">
+                                <div class="reviewer-info">
+                                        <img src="https://i.pravatar.cc/150?img=47" alt="Reviewer" class="avatar"
+                                                loading="lazy">
                                         <div>
-                                                <h4 style="font-size: 1.2rem; margin-bottom: 0.5rem;">Zero Dependency
-                                                </h4>
-                                                <p style="color: var(--text-muted);">You don’t depend on our servers to
-                                                        keep your links working.</p>
+                                                <h4>Marcus Webb</h4>
+                                                <span class="verified"><i data-lucide="badge-check"
+                                                                class="text-primary inline-icon"></i> Coach</span>
                                         </div>
-                                </li>
-                        </ul>
-                </div>
-        </section>
-
-        <!-- 10. WHO IS THIS FOR -->
-        <section id="for-whom" class="container reveal" style="text-align: center;">
-                <h2>Who Is This For?</h2>
-                <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem; margin-top: 4rem;">
-                        <span class="glass-card" style="padding: 1rem 2rem; font-weight: 700;">✔ Coaches</span>
-                        <span class="glass-card" style="padding: 1rem 2rem; font-weight: 700;">✔ Creators</span>
-                        <span class="glass-card" style="padding: 1rem 2rem; font-weight: 700;">✔ Agencies</span>
-                        <span class="glass-card" style="padding: 1rem 2rem; font-weight: 700;">✔ Consultants</span>
-                        <span class="glass-card" style="padding: 1rem 2rem; font-weight: 700;">✔ Brands</span>
-                        <span class="glass-card" style="padding: 1rem 2rem; font-weight: 700;">✔ Freelancers</span>
-                </div>
-                <p style="margin-top: 3rem; font-size: 1.2rem; font-weight: 600;">If your bio link generates leads or
-                        sales — you need control.</p>
-        </section>
-
-        <!-- 11. FAQ -->
-        <section id="faq" class="container reveal">
-                <h2 style="text-align: center;">Common Questions</h2>
-                <div class="faq-grid">
-                        <div class="faq-item">
-                                <div class="faq-header">
-                                        <h4>Do I need coding skills?</h4> <span class="faq-icon">+</span>
                                 </div>
-                                <div class="faq-content">
-                                        <p>No. We provide a simple setup guide that anyone can follow. If you know how
-                                                to upload files to a server, you're ready.</p>
-                                </div>
-                        </div>
-                        <div class="faq-item">
-                                <div class="faq-header">
-                                        <h4>When do I get my license key?</h4> <span class="faq-icon">+</span>
-                                </div>
-                                <div class="faq-content">
-                                        <p>Immediately. Access is automatically granted after payment is confirmed.</p>
-                                </div>
-                        </div>
-                        <div class="faq-item">
-                                <div class="faq-header">
-                                        <h4>Are there any hidden charges?</h4> <span class="faq-icon">+</span>
-                                </div>
-                                <div class="faq-content">
-                                        <p>No. This is truly a one-time purchase for the lifetime of the product
-                                                version.</p>
-                                </div>
-                        </div>
-                        <div class="faq-item">
-                                <div class="faq-header">
-                                        <h4>Can I use it forever?</h4> <span class="faq-icon">+</span>
-                                </div>
-                                <div class="faq-content">
-                                        <p>Yes. As long as your server is running, BioScript will work.</p>
-                                </div>
+                                <p>"Being able to embed my coaching calendar and capture emails directly on my bio page
+                                        has dramatically increased my conversions. Absolutely worth the lifetime price."
+                                </p>
                         </div>
                 </div>
         </section>
 
-        <!-- 12. PRICING -->
-        <section id="pricing" class="container reveal" style="padding-bottom: 200px;">
-                <div class="pricing-card">
-                        <div class="founder-tag">Founder Lifetime Offer</div>
-                        <h2>One Payment. Lifetime Access.</h2>
-                        <div style="margin: 2rem 0;">
-                                <span class="price-old">₹2,499</span>
-                                <div class="price-new text-gradient">₹999</div>
+        <!-- 9. PRICING -->
+        <section id="pricing" class="pricing-section section-spacing border-top reveal">
+                <div class="container relative">
+                        <div class="pricing-glow"></div>
+                        <div class="section-header text-center">
+                                <h2 class="section-title">Buy once. Use forever.</h2>
+                                <p class="section-subtitle">Get the complete BioScript platform today.</p>
                         </div>
-                        <div style="text-align: left; margin: 3rem 0; display: inline-block;">
-                                <p style="margin-bottom: 0.8rem;">✔ Full Files & Source Code</p>
-                                <p style="margin-bottom: 0.8rem;">✔ Lifetime License Key</p>
-                                <p style="margin-bottom: 0.8rem;">✔ Admin Dashboard Control</p>
-                                <p style="margin-bottom: 0.8rem;">✔ Step-by-Step Setup Guide</p>
-                                <p style="margin-bottom: 0.8rem;">✔ Future Minor Updates Included</p>
-                        </div>
-                        <a href="#" class="btn btn-primary pulse-btn" style="width: 100%; font-size: 1.3rem;">Secure
-                                Lifetime License</a>
 
-                        <div class="slots-progress">
-                                <div class="p-label"><span>Founder Slots Claimed</span> <span>85/100</span></div>
-                                <div class="p-bar">
-                                        <div class="p-fill"></div>
+                        <div class="pricing-card glass-card premium-border">
+                                <div class="pricing-tag">Launch Offer — 60% Off</div>
+                                <div class="pricing-split">
+                                        <div class="pricing-left">
+                                                <div class="price-block">
+                                                        <span class="price-strikethrough">₹2,499</span>
+                                                        <div class="price-current">
+                                                                <span class="currency">₹</span>
+                                                                <span class="amount text-gradient">999</span>
+                                                                <span class="period">/ lifetime</span>
+                                                        </div>
+                                                </div>
+                                                <p class="pricing-desc">Instant access to the complete source code,
+                                                        database schema, and lifetime license key.
+                                                        <br><br><strong>Equivalent to only 2 months of standard SaaS
+                                                                fees.</strong>
+                                                </p>
+                                                <a href="https://templategem.com/checkouts/checkout-bioscript-creator-edition-the-self-hosted-micro-business-hub/"
+                                                        class="btn btn-primary btn-large w-full glow-effect">Get
+                                                        BioScript — ₹999</a>
+                                                <p class="secure-text"><i data-lucide="shield-check"></i> Secure
+                                                        Checkout via Razorpay</p>
+                                        </div>
+
+                                        <div class="pricing-right">
+                                                <h4>What's included:</h4>
+                                                <ul class="pricing-features">
+                                                        <li><i data-lucide="check" class="text-primary"></i> Full Source
+                                                                Code (PHP/JS/CSS)</li>
+                                                        <li><i data-lucide="check" class="text-primary"></i> 1 Lifetime
+                                                                License Key</li>
+                                                        <li><i data-lucide="check" class="text-primary"></i> Unlimited
+                                                                Bio Pages</li>
+                                                        <li><i data-lucide="check" class="text-primary"></i> Visual
+                                                                Admin Dashboard</li>
+                                                        <li><i data-lucide="check" class="text-primary"></i>
+                                                                Step-by-Step Installation Guide</li>
+                                                        <li><i data-lucide="check" class="text-primary"></i> Future
+                                                                Minor Updates</li>
+                                                </ul>
+                                        </div>
                                 </div>
                         </div>
-
-                        <p style="margin-top: 1.5rem; color: var(--accent); font-weight: 800; font-size: 0.9rem;">
-                                Founder price available for limited time.
-                        </p>
-                </div>
-
-                <!-- FINAL PUSH -->
-                <div style="text-align: center; margin-top: 6rem;">
-                        <h2 style="font-size: 3.5rem;">You’ll Either Pay Monthly Forever<br>Or Pay Once and Finish It.
-                        </h2>
-                        <p style="font-size: 1.5rem; color: var(--text-muted); margin-bottom: 3rem;">Simple choice.</p>
-                        <a href="#pricing" class="btn btn-primary" style="padding: 1.5rem 4rem; font-size: 1.3rem;">Get
-                                BioScript Now — ₹999</a>
                 </div>
         </section>
 
+        <!-- 10. FAQ -->
+        <section id="faq" class="faq-section section-spacing border-top container reveal">
+                <div class="section-header text-center">
+                        <h2 class="section-title">Frequently Asked Questions</h2>
+                </div>
+
+                <div class="faq-accordion">
+                        <div class="faq-item glass-card">
+                                <button class="faq-trigger">
+                                        <span>Do I need coding skills to use this?</span>
+                                        <i data-lucide="chevron-down" class="faq-chevron"></i>
+                                </button>
+                                <div class="faq-content">
+                                        <p>No coding is required to use the platform. It comes with a visual
+                                                drag-and-drop builder. To install it, you only need to know how to
+                                                upload files to a web server (like cPanel) and create a MySQL database.
+                                                We provide a step-by-step guide.</p>
+                                </div>
+                        </div>
+
+                        <div class="faq-item glass-card">
+                                <button class="faq-trigger">
+                                        <span>What kind of hosting do I need?</span>
+                                        <i data-lucide="chevron-down" class="faq-chevron"></i>
+                                </button>
+                                <div class="faq-content">
+                                        <p>BioScript runs on any standard shared hosting, VPS, or dedicated server that
+                                                supports PHP 7.4+ or PHP 8.1+, and MySQL/MariaDB. Hosts like Hostinger,
+                                                GoDaddy, Namecheap, or DigitalOcean will work perfectly.</p>
+                                </div>
+                        </div>
+
+                        <div class="faq-item glass-card">
+                                <button class="faq-trigger">
+                                        <span>Are there any recurring monthly fees?</span>
+                                        <i data-lucide="chevron-down" class="faq-chevron"></i>
+                                </button>
+                                <div class="faq-content">
+                                        <p>Absolutely zero. You pay exactly once for the software license. You will only
+                                                need to pay your own web hosting provider, which you control entirely
+                                                safely.</p>
+                                </div>
+                        </div>
+
+                        <div class="faq-item glass-card">
+                                <button class="faq-trigger">
+                                        <span>When do I receive the files?</span>
+                                        <i data-lucide="chevron-down" class="faq-chevron"></i>
+                                </button>
+                                <div class="faq-content">
+                                        <p>Instantly. As soon as your payment is processed securely, you will receive an
+                                                email containing a zip file with the full source code and your unique
+                                                Lifetime License Key.</p>
+                                </div>
+                        </div>
+                </div>
+        </section>
+
+        <!-- 11. FINAL CTA -->
+        <section class="final-cta section-spacing border-top container reveal">
+                <div class="final-banner glass-card text-center">
+                        <h2 class="section-title">Stop paying rent. Start owning.</h2>
+                        <p class="section-subtitle text-center">Launch your self-hosted marketing infrastructure in 5
+                                minutes.</p>
+                        <a href="https://templategem.com/checkouts/checkout-bioscript-creator-edition-the-self-hosted-micro-business-hub/"
+                                class="btn btn-primary btn-large glow-effect" style="margin-top: 2rem;">Get
+                                BioScript — ₹999</a>
+                </div>
+        </section>
+
+        <!-- FOOTER -->
+        <footer class="footer border-top">
+                <div class="container footer-content">
+                        <div class="footer-left">
+                                <div class="nav-logo">
+                                        <i data-lucide="zap" class="logo-icon text-primary"></i>
+                                        <span>BioScript</span>
+                                </div>
+                                <p class="footer-desc">The self-hosted architecture for independent creators.</p>
+                        </div>
+                        <div class="footer-right">
+                                <p>&copy; 2026 BioScript. All rights reserved.</p>
+                        </div>
+                </div>
+        </footer>
+
+        <!-- Review Popup -->
+        <div id="review-popup" class="review-popup glass-card hidden">
+                <div class="review-popup-content text-only-popup">
+                        <div class="review-text">
+                                <div class="review-badge"
+                                        style="font-size: 0.75rem; font-weight: 700; color: var(--text-primary); margin-bottom: 2px;">
+                                        <i data-lucide="badge-check" class="text-primary popup-badge"
+                                                style="width: 14px; height: 14px;"></i> Verified
+                                        Purchase
+                                </div>
+                                <div class="review-name" style="color: var(--text-secondary); font-size: 0.8rem;"><span
+                                                id="popup-name">Rohit</span> — <span id="popup-location">Mumbai</span>
+                                </div>
+                                <div class="review-quote" id="popup-quote"
+                                        style="margin-top: 4px; font-style: italic; color: var(--text-primary); font-size: 0.85rem; max-width: 220px; line-height: 1.3;">
+                                        “Set up my bio page in minutes. Works great.”</div>
+                        </div>
+                </div>
+                <button class="review-close" id="popup-close" style="align-self: flex-start; margin-top: 2px;"><i
+                                data-lucide="x" style="width: 16px; height: 16px;"></i></button>
+        </div>
+
+        <!-- Init icons and scripts -->
+        <script>
+                lucide.createIcons();
+        </script>
         <script src="assets/js/offer.js"></script>
 </body>
 
