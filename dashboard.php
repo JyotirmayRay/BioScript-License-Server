@@ -1013,27 +1013,27 @@ if ($health && !empty($health['last_received_at'])) {
                 </div>
             </div>
 
-            <div class="p-6 border-t border-slate-700/50 bg-slate-900/50 shrink-0">
+            <div class="p-6 border-t border-slate-700/50 bg-slate-900/50 shrink-0 space-y-3">
                 <form method="POST">
                     <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
                     <input type="hidden" name="id" :value="selectedLicense ? selectedLicense.id : ''">
                     <input type="hidden" name="domains" :value="JSON.stringify(domainList)">
                     <button type="submit" name="save_domains"
                         class="ent-btn-primary w-full text-xs font-black uppercase tracking-widest py-3.5 rounded flex items-center justify-center space-x-2">
+                        <i class="fas fa-microchip opacity-50"></i>
                         <span>Save Lockdown Configuration</span>
                     </button>
                 </form>
+                <a :href="'?action=reset_domains&id=' + (selectedLicense ? selectedLicense.id : '') + '&token=<?php echo $_SESSION['csrf_token']; ?>'"
+                    @click.prevent="if(confirm('DANGER: This will wipe ALL authorized domains for this license. Continue?')) window.location.href=$el.href"
+                    class="w-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white text-[10px] font-black uppercase tracking-widest py-3 rounded flex items-center justify-center space-x-2 transition-colors">
+                    <i class="fas fa-trash-alt opacity-50"></i>
+                    <span>Wipe All Bindings</span>
+                </a>
             </div>
         </div>
     </div>
-    <a :href="'?action=reset_domains&id=' + (selectedLicense ? selectedLicense.id : '') + '&token=<?php echo $_SESSION['csrf_token']; ?>'"
-        class="w-full bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold uppercase tracking-widest py-3 rounded flex items-center justify-center space-x-2 transition-colors">
-        <i class="fas fa-sync-alt"></i>
-        <span>Reset Bindings</span>
-    </a>
-    </div>
-    </div>
-    </div>
+    </main>
 
 </body>
 
