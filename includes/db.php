@@ -84,8 +84,14 @@ try {
         order_status TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
+    // --- TABLE 6: WEBHOOK HEALTH (Track webhook activity) ---
+    $pdo->exec("CREATE TABLE IF NOT EXISTS webhook_health (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        last_received_at DATETIME,
+        last_event_type TEXT,
+        total_received INTEGER DEFAULT 0
+    )");
 
-    // Ensure UNIQUE constraint on 'key' column if possible (SQLite specific migration)
     try {
         $pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_settings_key ON system_settings(key)");
     }

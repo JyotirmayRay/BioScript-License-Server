@@ -122,9 +122,14 @@ $banned_licenses = count(array_filter($licenses, fn($l) => $l['status'] === 'ban
 $agency_licenses = count(array_filter($licenses, fn($l) => $l['tier'] === 'Agency'));
 $enterprise_licenses = count(array_filter($licenses, fn($l) => $l['tier'] === 'Enterprise'));
 
-// Webhook Health Data
-$stmt = $pdo->query("SELECT * FROM webhook_health WHERE id = 1");
-$health = $stmt->fetch();
+// Webhook Health Data - safe query (table may not exist in older deployments)
+$health = null;
+try {
+    $stmt = $pdo->query("SELECT * FROM webhook_health WHERE id = 1");
+    $health = $stmt->fetch();
+} catch (Exception $e) {
+    // Table may not exist yet - safe to ignore, db.php migration will create it on next load
+}
 
 $webhook_status = 'inactive';
 if ($health && !empty($health['last_received_at'])) {
