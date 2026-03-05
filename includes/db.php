@@ -37,14 +37,26 @@ try {
         ls_webhook_secret TEXT
     )");
 
-    // Modified to be a flexible KV store while keeping core admin fields
-    $pdo->exec("CREATE TABLE IF NOT EXISTS system_settings (
+    // --- TABLE 3: ACTIVATIONS (Track individual activations) ---
+    $pdo->exec("CREATE TABLE IF NOT EXISTS activations (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        key TEXT,
-        value TEXT,
-        admin_username TEXT DEFAULT 'admin',
-        admin_password TEXT,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        license_id INTEGER NOT NULL,
+        domain TEXT NOT NULL,
+        fingerprint TEXT,
+        activated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        last_ping DATETIME DEFAULT CURRENT_TIMESTAMP,
+        status TEXT DEFAULT 'active'
+    )");
+
+    // --- TABLE 4: ORDERS (Log purchase events) ---
+    $pdo->exec("CREATE TABLE IF NOT EXISTS orders (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        order_number TEXT UNIQUE,
+        client_email TEXT,
+        license_key TEXT,
+        product_name TEXT,
+        order_status TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
 
     // Ensure UNIQUE constraint on 'key' column if possible (SQLite specific migration)
