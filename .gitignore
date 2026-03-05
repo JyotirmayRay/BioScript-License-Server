@@ -1,0 +1,17 @@
+# Databases & local data
+authority.db
+authority.db-shm
+authority.db-wal
+data/
+logs/*.log
+
+# PHP cache/temp
+*.cache
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test scripts
+verify_test_local.php
