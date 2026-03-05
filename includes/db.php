@@ -21,12 +21,28 @@ try {
         client_email TEXT,
         tier TEXT DEFAULT 'Standard',
         max_domains INTEGER DEFAULT 1,
-        registered_domains TEXT DEFAULT '[]', -- JSON Array of domains
-        installation_fingerprint TEXT,        -- Unique hardware/env hash
-        status TEXT DEFAULT 'active',          -- 'active', 'banned', 'expired'
+        registered_domains TEXT DEFAULT '[]',
+        installation_fingerprint TEXT,
+        status TEXT DEFAULT 'active',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        last_verified_at DATETIME             -- Track periodic pings
+        last_verified_at DATETIME
     )");
+
+    // --- MIGRATION: Add missing columns to existing licenses table ---
+    $migrations = [
+        "ALTER TABLE licenses ADD COLUMN installation_fingerprint TEXT",
+        "ALTER TABLE licenses ADD COLUMN last_verified_at DATETIME",
+        "ALTER TABLE licenses ADD COLUMN registered_domains TEXT DEFAULT '[]'",
+        "ALTER TABLE licenses ADD COLUMN max_domains INTEGER DEFAULT 1",
+        "ALTER TABLE licenses ADD COLUMN tier TEXT DEFAULT 'Standard'",
+    ];
+    foreach ($migrations as $sql) {
+        try {
+            $pdo->exec($sql);
+        }
+        catch (Exception $e) { /* Column already exists - safe to ignore */
+        }
+    }
 
     // --- TABLE 2: PLATFORM SETTINGS ---
     $pdo->exec("CREATE TABLE IF NOT EXISTS platform_settings (
