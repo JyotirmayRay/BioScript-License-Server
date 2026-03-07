@@ -9,12 +9,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     verify_csrf();
     $action = $_POST['action'];
 
-    if ($action === 'suspend' || $action === 'activate') {
+    if ($action === 'suspend' || $action === 'activate' || $action === 'restore') {
         $id = (int)($_POST['reseller_id'] ?? 0);
         if ($id > 0) {
             $new_status = ($action === 'suspend') ? 'suspended' : 'active';
             $pdo->prepare("UPDATE resellers SET status = ? WHERE id = ?")->execute([$new_status, $id]);
-            $success = "Reseller " . ($action === 'suspend' ? 'suspended' : 'activated') . " successfully.";
+            $success = "Reseller status updated successfully.";
         }
     }
     elseif ($action === 'create') {
@@ -28,11 +28,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $error = "Password must be at least 8 characters.";
         }
         else {
-            // Check duplicate
-            $stmt = $pdo->prepare("SELECT id FROM resellers WHERE email = ?");
+            // Check for existing active or suspended
+            $stmt = $pdo->prepare("SELECT id, status FROM resellers WHERE email = ?");
             $stmt->execute([$email]);
-            if ($stmt->fetch()) {
-                $error = "A reseller with this email already exists.";
+            $existing = $stmt->fetch();
+
+            if ($existing) {
+                if ($existing['status'] === 'deleted') {
+                    // Smart Creation: Re-activate soft-deleted account
+                    $chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+                    $segments = [];
+                    for ($i = 0; $i < 3; $i++) {
+                        $s = '';
+                        for ($j = 0; $j < 4; $j++)
+                            $s .= $chars[random_int(0, strlen($chars) - 1)];
+                        $segments[] = $s;
+                    }
+                    $reseller_key = 'RES-' . implode('-', $segments);
+                    $hash = password_hash($password, PASSWORD_DEFAULT);
+
+                    $pdo->prepare("UPDATE resellers SET status = 'active', password_hash = ?, license_key = ? WHERE id = ?")
+                        ->execute([$hash, $reseller_key, $existing['id']]);
+                    $success = "Existing account for $email was restored and updated with a new key: $reseller_key";
+                }
+                else {
+                    $error = "A reseller with this email already exists.";
+                }
             }
             else {
                 // Generate RES-XXXX-XXXX-XXXX key
@@ -91,6 +112,16 @@ $query = "
 ";
 $stmt = $pdo->query($query);
 $resellers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Fetch Deleted Resellers for Archival list
+$archived_query = "
+    SELECT r.*,
+           (SELECT COUNT(*) FROM licenses WHERE reseller_id = r.id) as total_licenses_generated
+    FROM resellers r
+    WHERE r.status = 'deleted'
+    ORDER BY r.created_at DESC
+";
+$archived_resellers = $pdo->query($archived_query)->fetchAll(PDO::FETCH_ASSOC);
 
 
 ?>
@@ -347,6 +378,65 @@ endif; ?>
                 </table>
             </div>
         </div>
+
+        <?php if (!empty($archived_resellers)): ?>
+        <!-- Archived Table -->
+        <div class="mt-16 mb-6">
+            <h3 class="text-xl font-bold text-slate-500 mb-2 border-b border-slate-800 pb-2 flex items-center">
+                <i class="fas fa-archive mr-2 opacity-50"></i> Archived Resellers
+            </h3>
+            <p class="text-xs text-slate-600 mb-6 uppercase tracking-widest font-black">Accounts marked as deleted.
+                Restore them to allow login.</p>
+        </div>
+
+        <div
+            class="ent-glass rounded-2xl shadow-xl overflow-hidden relative z-10 opacity-70 hover:opacity-100 transition-opacity">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm text-slate-500">
+                    <thead
+                        class="bg-slate-900/40 text-slate-500 uppercase text-[10px] font-bold tracking-widest border-b border-slate-800/50">
+                        <tr>
+                            <th class="px-6 py-4">Reseller Email</th>
+                            <th class="px-6 py-4">Generated</th>
+                            <th class="px-6 py-4">Status</th>
+                            <th class="px-6 py-4 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800/30">
+                        <?php foreach ($archived_resellers as $ar): ?>
+                        <tr class="hover:bg-slate-800/20 transition-colors">
+                            <td class="px-6 py-4 font-medium">
+                                <?php echo htmlspecialchars($ar['email']); ?>
+                            </td>
+                            <td class="px-6 py-4 font-mono text-xs">
+                                <?php echo number_format($ar['total_licenses_generated']); ?>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span
+                                    class="inline-flex items-center px-2 py-0.5 rounded text-[9px] uppercase font-black border border-slate-700 text-slate-500">Deleted</span>
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <form method="POST" class="inline"
+                                    onsubmit="return confirm('Restore this reseller account?');">
+                                    <input type="hidden" name="csrf_token"
+                                        value="<?php echo $_SESSION['csrf_token']; ?>">
+                                    <input type="hidden" name="reseller_id" value="<?php echo $ar['id']; ?>">
+                                    <input type="hidden" name="action" value="restore">
+                                    <button type="submit"
+                                        class="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 border border-emerald-500/20 rounded-lg px-3 py-1.5 text-[10px] font-black uppercase tracking-widest transition-all">
+                                        <i class="fas fa-undo mr-1"></i> Restore
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        <?php
+    endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <?php
+endif; ?>
     </main>
 
     <!-- Create Reseller Modal -->
