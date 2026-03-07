@@ -16,7 +16,7 @@ try {
     $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
     // --- TABLE: LICENSES ---
-    $pdo->exec("CREATE TABLE IF NOT EXISTS licenses (
+    try { $pdo->exec("CREATE TABLE IF NOT EXISTS licenses (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         license_key TEXT UNIQUE NOT NULL,
         client_email TEXT,
@@ -27,29 +27,29 @@ try {
         status TEXT DEFAULT 'active',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         last_verified_at DATETIME
-    )");
+    )"); } catch (PDOException $e) {}
 
     // --- TABLE: PLATFORM SETTINGS (Admin Auth) ---
-    $pdo->exec("CREATE TABLE IF NOT EXISTS platform_settings (
+    try { $pdo->exec("CREATE TABLE IF NOT EXISTS platform_settings (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         admin_user TEXT NOT NULL,
         admin_pass TEXT NOT NULL,
         ls_api_key TEXT,
         ls_webhook_secret TEXT
-    )");
+    )"); } catch (PDOException $e) {}
 
     // --- TABLE: SYSTEM SETTINGS (KV store for engine config) ---
-    $pdo->exec("CREATE TABLE IF NOT EXISTS system_settings (
+    try { $pdo->exec("CREATE TABLE IF NOT EXISTS system_settings (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         key TEXT,
         value TEXT,
         admin_username TEXT DEFAULT 'admin',
         admin_password TEXT,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )");
+    )"); } catch (PDOException $e) {}
 
     // --- TABLE: SETTINGS (SMTP + WooCommerce API config) ---
-    $pdo->exec("CREATE TABLE IF NOT EXISTS settings (
+    try { $pdo->exec("CREATE TABLE IF NOT EXISTS settings (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         smtp_host TEXT DEFAULT '',
         smtp_port INTEGER DEFAULT 587,
@@ -62,10 +62,10 @@ try {
         woo_consumer_key TEXT DEFAULT '',
         woo_consumer_secret TEXT DEFAULT '',
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )");
+    )"); } catch (PDOException $e) {}
 
     // --- TABLE: ACTIVATIONS ---
-    $pdo->exec("CREATE TABLE IF NOT EXISTS activations (
+    try { $pdo->exec("CREATE TABLE IF NOT EXISTS activations (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         license_id INTEGER NOT NULL,
         domain TEXT NOT NULL,
@@ -73,10 +73,10 @@ try {
         activated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         last_ping DATETIME DEFAULT CURRENT_TIMESTAMP,
         status TEXT DEFAULT 'active'
-    )");
+    )"); } catch (PDOException $e) {}
 
     // --- TABLE: ORDERS (WooCommerce orders) ---
-    $pdo->exec("CREATE TABLE IF NOT EXISTS orders (
+    try { $pdo->exec("CREATE TABLE IF NOT EXISTS orders (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         woo_order_id TEXT UNIQUE,
         order_number TEXT,
@@ -90,41 +90,41 @@ try {
         order_status TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )");
+    )"); } catch (PDOException $e) {}
 
     // --- TABLE: ORDER LOGS (Raw webhook payloads) ---
-    $pdo->exec("CREATE TABLE IF NOT EXISTS order_logs (
+    try { $pdo->exec("CREATE TABLE IF NOT EXISTS order_logs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         woo_order_id TEXT,
         status TEXT,
         raw_payload TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )");
+    )"); } catch (PDOException $e) {}
 
     // --- TABLE: PROCESSED ORDERS (Deduplication) ---
-    $pdo->exec("CREATE TABLE IF NOT EXISTS processed_orders (
+    try { $pdo->exec("CREATE TABLE IF NOT EXISTS processed_orders (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         woo_order_id TEXT UNIQUE,
         processed_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )");
+    )"); } catch (PDOException $e) {}
 
     // --- TABLE: PRODUCTS REGISTRY (WooCommerce product whitelist) ---
-    $pdo->exec("CREATE TABLE IF NOT EXISTS products_registry (
+    try { $pdo->exec("CREATE TABLE IF NOT EXISTS products_registry (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         woo_product_id TEXT UNIQUE,
         sku TEXT DEFAULT '',
         license_type TEXT DEFAULT 'standard',
         active INTEGER DEFAULT 1,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )");
+    )"); } catch (PDOException $e) {}
 
     // --- TABLE: WEBHOOK HEALTH ---
-    $pdo->exec("CREATE TABLE IF NOT EXISTS webhook_health (
+    try { $pdo->exec("CREATE TABLE IF NOT EXISTS webhook_health (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         last_received_at DATETIME,
         last_event_type TEXT,
         total_received INTEGER DEFAULT 0
-    )");
+    )"); } catch (PDOException $e) {}
 
     // --- TABLE: RESELLERS ---
     try {
@@ -231,9 +231,17 @@ try {
     catch (PDOException $e) {
     }
 
-    // Performance Indexes
-    $pdo->exec("CREATE INDEX IF NOT EXISTS idx_licenses_key ON licenses(license_key);");
-    $pdo->exec("CREATE INDEX IF NOT EXISTS idx_licenses_reseller ON licenses(reseller_id);");
+    // Performance Indexes (wrapped in try/catch — reseller_id column may not exist yet on first run)
+    try {
+        $pdo->exec("CREATE INDEX IF NOT EXISTS idx_licenses_key ON licenses(license_key);");
+    }
+    catch (PDOException $e) {
+    }
+    try {
+        $pdo->exec("CREATE INDEX IF NOT EXISTS idx_licenses_reseller ON licenses(reseller_id);");
+    }
+    catch (PDOException $e) {
+    }
 
     // --- MIGRATIONS: Add missing columns to existing tables (safe - catches error if column exists) ---
     $migrations = [
