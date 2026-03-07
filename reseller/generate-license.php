@@ -149,7 +149,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate'])) {
                             require_once __DIR__ . '/../includes/EmailService.php';
                             $verify_url = 'https://license.bioscript.link/verify-email.php?token=' . urlencode($verification_token);
 
-                            $mail = EmailService::createMailerPublic($pdo, $customer_email);
+                            $mail = EmailService::createMailer($pdo, $customer_email);
                             $mail->Subject = 'Verify Your BioScript License';
                             $mail->Body = '<html><body style="font-family:Arial,sans-serif;background:#0f172a;color:#fff;padding:40px;margin:0;">'
                                 . '<div style="max-width:600px;margin:0 auto;background:#1e293b;border-radius:12px;overflow:hidden;border:1px solid #334155;">'
@@ -174,7 +174,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate'])) {
                                 'ip' => $client_ip, 'reseller_id' => $reseller_id, 'email' => $customer_email
                             ]);
                         }
-                        catch (\Exception $mailErr) {
+                        catch (\Throwable $mailErr) {
                             // Log but don't fail — license was still created
                             ResellerLogger::log($pdo, 'verification_email_failed', "SMTP failed for $customer_email: " . $mailErr->getMessage(), [
                                 'ip' => $client_ip, 'reseller_id' => $reseller_id, 'email' => $customer_email
