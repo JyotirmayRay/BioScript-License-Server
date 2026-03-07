@@ -179,7 +179,7 @@ $archived_resellers = $pdo->query($archived_query)->fetchAll(PDO::FETCH_ASSOC);
                         mono: ['JetBrains Mono', 'monospace'],
                     }
                 }
-        }
+            }
         }
     </script>
     <link
@@ -567,7 +567,7 @@ endif; ?>
         function openEditModal(id, email) {
             document.getElementById('editId').value = id;
             document.getElementById('editEmail').value = email;
-            document.getElementById('editModal').classLiemoden');
+            document.getElementById('editModal').classList.remove('hidden');
         }
     </script>
 </body>
