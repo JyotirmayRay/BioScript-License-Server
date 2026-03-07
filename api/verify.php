@@ -238,7 +238,7 @@ try {
                 'domain' => $domain,
                 'license' => $license_key,
                 'message' => 'Activated and Locked',
-                'verified' => (bool)$license['is_verified'],
+                'verified' => (int)$license['is_verified'],
                 'client_email' => $license['client_email'],
                 'timestamp' => time()
             ];
@@ -252,7 +252,7 @@ try {
                 'domain' => $domain,
                 'license' => $license_key,
                 'message' => 'License Valid',
-                'verified' => (bool)$license['is_verified'],
+                'verified' => (int)$license['is_verified'],
                 'client_email' => $license['client_email'],
                 'timestamp' => time()
             ];
@@ -270,7 +270,7 @@ try {
                     'domain' => $domain,
                     'license' => $license_key,
                     'message' => 'Domain Added',
-                    'verified' => (bool)$license['is_verified'],
+                    'verified' => (int)$license['is_verified'],
                     'client_email' => $license['client_email'],
                     'timestamp' => time()
                 ];
