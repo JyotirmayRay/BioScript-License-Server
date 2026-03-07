@@ -64,6 +64,9 @@ if (!empty($token)) {
                 elseif ($lic && $lic['status'] === 'active') {
                     // Safety catch if license got activated somehow but token wasn't updated
                     $pdo->prepare("UPDATE email_verifications SET verified = 1 WHERE id = ?")->execute([$verification['id']]);
+                    // CRUCIAL MISSING STEP: Update the actual license record to show it is verified!
+                    $pdo->prepare("UPDATE licenses SET is_verified = 1 WHERE license_key = ?")->execute([$license_key]);
+
                     $status = 'already_verified';
                     $message = 'Your license is already active. You may proceed.';
                 }
