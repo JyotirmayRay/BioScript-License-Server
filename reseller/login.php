@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
         }
         else {
             // Find reseller by email (include license_key for session enforcement)
-            $stmt = $pdo->prepare("SELECT id, email, password_hash, license_key, status FROM resellers WHERE email = ?");
+            $stmt = $pdo->prepare("SELECT id, email, password_hash, license_key, status, is_verified FROM resellers WHERE email = ?");
             $stmt->execute([$email]);
             $reseller = $stmt->fetch();
 
@@ -61,7 +61,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
                     $_SESSION['reseller_logged_in'] = true;
                     $_SESSION['reseller_id'] = $reseller['id'];
                     $_SESSION['reseller_email'] = $reseller['email'];
-                    $_SESSION['reseller_key'] = $reseller['license_key']; // Store for generation authorization
+                    $_SESSION['reseller_key'] = $reseller['license_key'];
+                    $_SESSION['reseller_is_verified'] = (int)$reseller['is_verified'];
                     $_SESSION['LAST_ACTIVITY'] = time();
 
                     ResellerLogger::log($pdo, 'login_success', "Reseller login | IP: $client_ip | Email: $email | Key: " . ($reseller['license_key'] ?? 'none'), [

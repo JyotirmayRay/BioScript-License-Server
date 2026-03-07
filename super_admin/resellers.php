@@ -9,12 +9,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     verify_csrf();
     $action = $_POST['action'];
 
-    if ($action === 'suspend' || $action === 'activate' || $action === 'restore') {
+    if ($action === 'suspend' || $action === 'activate' || $action === 'restore' || $action === 'rotate_key') {
         $id = (int)($_POST['reseller_id'] ?? 0);
         if ($id > 0) {
-            $new_status = ($action === 'suspend') ? 'suspended' : 'active';
-            $pdo->prepare("UPDATE resellers SET status = ? WHERE id = ?")->execute([$new_status, $id]);
-            $success = "Reseller status updated successfully.";
+            if ($action === 'rotate_key') {
+                // Generate new key and reset verification
+                $chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+                $segments = [];
+                for ($i = 0; $i < 3; $i++) {
+                    $s = '';
+                    for ($j = 0; $j < 4; $j++)
+                        $s .= $chars[random_int(0, strlen($chars) - 1)];
+                    $segments[] = $s;
+                }
+                $new_key = 'RES-' . implode('-', $segments);
+                $pdo->prepare("UPDATE resellers SET is_verified = 0, license_key = ? WHERE id = ?")->execute([$new_key, $id]);
+                $success = "Reseller key rotated and account reset to unverified. New Key: $new_key";
+            }
+            else {
+                $new_status = ($action === 'suspend') ? 'suspended' : 'active';
+                $pdo->prepare("UPDATE resellers SET status = ? WHERE id = ?")->execute([$new_status, $id]);
+                $success = "Reseller status updated successfully.";
+            }
         }
     }
     elseif ($action === 'create') {
@@ -47,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $reseller_key = 'RES-' . implode('-', $segments);
                     $hash = password_hash($password, PASSWORD_DEFAULT);
 
-                    $pdo->prepare("UPDATE resellers SET status = 'active', password_hash = ?, license_key = ? WHERE id = ?")
+                    $pdo->prepare("UPDATE resellers SET status = 'active', password_hash = ?, license_key = ?, is_verified = 0 WHERE id = ?")
                         ->execute([$hash, $reseller_key, $existing['id']]);
                     $success = "Existing account for $email was restored and updated with a new key: $reseller_key";
                 }
@@ -297,6 +313,12 @@ endif; ?>
                                 <?php if ($r['status'] === 'active'): ?>
                                 <span
                                     class="inline-flex items-center px-2.5 py-1 rounded text-[10px] uppercase font-bold border bg-emerald-500/10 text-emerald-400 border-emerald-500/20">Active</span>
+                                <?php if (!$r['is_verified']): ?>
+                                <span
+                                    class="inline-flex items-center px-2.5 py-1 rounded text-[10px] uppercase font-bold border bg-amber-500/10 text-amber-400 border-amber-500/20 ml-1"
+                                    title="Account not yet paired with Reseller Key">Unpaired</span>
+                                <?php
+        endif; ?>
                                 <?php
     else: ?>
                                 <span
@@ -345,6 +367,19 @@ endif; ?>
                                         </button>
                                         <?php
     endif; ?>
+                                    </form>
+
+                                    <form method="POST" class="inline"
+                                        onsubmit="return confirm('Force re-verification? This will reset their pairing and generate a NEW Reseller Key.');">
+                                        <input type="hidden" name="csrf_token"
+                                            value="<?php echo $_SESSION['csrf_token']; ?>">
+                                        <input type="hidden" name="reseller_id" value="<?php echo $r['id']; ?>">
+                                        <input type="hidden" name="action" value="rotate_key">
+                                        <button type="submit"
+                                            class="p-2 text-slate-400 hover:text-rose-400 transition-colors"
+                                            title="Force Re-verification (Rotate Key)">
+                                            <i class="fas fa-sync-alt"></i>
+                                        </button>
                                     </form>
 
                                     <form method="POST" class="inline"

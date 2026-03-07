@@ -172,12 +172,50 @@ $chart_values = array_values($monthly_data);
                 <h2 class="text-3xl font-bold text-white mb-2 tracking-tight">Overview</h2>
                 <p class="text-slate-400">Welcome back. View your license issuance metrics here.</p>
             </div>
+            <?php if (isset($_SESSION['reseller_is_verified']) && $_SESSION['reseller_is_verified'] === 1): ?>
             <a href="generate-license.php"
                 class="ent-btn-primary font-bold py-3 px-6 rounded-xl transition-all flex items-center space-x-2">
                 <i class="fas fa-plus"></i>
                 <span>New License</span>
             </a>
+            <?php
+else: ?>
+            <button disabled title="Please pair your account first"
+                class="bg-slate-800 text-slate-500 cursor-not-allowed font-bold py-3 px-6 rounded-xl border border-slate-700 flex items-center space-x-2">
+                <i class="fas fa-lock text-xs"></i>
+                <span>New License</span>
+            </button>
+            <?php
+endif; ?>
         </header>
+
+        <?php if (!isset($_SESSION['reseller_is_verified']) || $_SESSION['reseller_is_verified'] !== 1): ?>
+        <!-- Account Pairing Warning -->
+        <div
+            class="mb-10 p-6 rounded-2xl bg-amber-500/10 border border-amber-500/20 relative z-10 overflow-hidden group">
+            <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                <i class="fas fa-shield-halved text-6xl rotate-12"></i>
+            </div>
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+                <div class="flex items-start space-x-4">
+                    <div
+                        class="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-500 shrink-0 border border-amber-500/20">
+                        <i class="fas fa-exclamation-triangle text-xl"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-amber-400 font-bold text-lg leading-tight mb-1">Account Pairing Required</h4>
+                        <p class="text-slate-400 text-sm max-w-xl">Your agency account is not yet paired with your
+                            Reseller Key. License generation features are currently locked for your security.</p>
+                    </div>
+                </div>
+                <a href="activate.php"
+                    class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-[10px] uppercase tracking-widest px-6 py-3 rounded-lg transition-all shadow-lg shadow-amber-500/20 whitespace-nowrap">
+                    <i class="fas fa-link mr-2"></i> Pair Account Now
+                </a>
+            </div>
+        </div>
+        <?php
+endif; ?>
 
         <!-- Stats Grid -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 relative z-10">

@@ -4,6 +4,12 @@ require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/ResellerLogger.php';
 
+// Force Account Pairing (One-time security check)
+if (!isset($_SESSION['reseller_is_verified']) || $_SESSION['reseller_is_verified'] !== 1) {
+    header('Location: activate.php');
+    exit;
+}
+
 $reseller_id = $_SESSION['reseller_id'];
 $reseller_email = $_SESSION['reseller_email'];
 $client_ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
