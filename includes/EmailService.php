@@ -77,9 +77,7 @@ class EmailService
     public static function sendLicense(PDO $pdo, $order_id, string $license, string $email): bool
     {
         $mail = self::createMailer($pdo, $email);
-        $mail->Subject = 'Your BioScript License Key - Download Ready';
-
-        $download_url = 'https://license.bioscript.link/download/bioscript?license=' . urlencode($license);
+        $mail->Subject = 'Your BioScript License Key Is Ready';
 
         $mail->Body = '<html><body style="font-family:Arial,sans-serif;background-color:#f9fafb;color:#334155;padding:40px 20px;margin:0;">'
             . '<div style="max-width:600px;margin:0 auto;background-color:#ffffff;border-radius:8px;border:1px solid #e2e8f0;overflow:hidden;">'
@@ -95,14 +93,10 @@ class EmailService
             . '<div style="margin:30px 0;">'
             . '<h3 style="margin:0 0 15px 0;font-size:16px;color:#0f172a;">Getting Started</h3>'
             . '<ol style="margin:0;padding-left:20px;color:#475569;font-size:15px;line-height:1.7;">'
-            . '<li>Download BioScript using the button below.</li>'
             . '<li>Upload the ZIP to your web server and extract it.</li>'
             . '<li>Visit <code style="background-color:#f1f5f9;padding:2px 6px;border-radius:4px;font-size:14px;color:#ef4444;">your-domain.com/install.php</code> and enter your license key.</li>'
             . '<li>Complete the setup wizard.</li>'
             . '</ol>'
-            . '</div>'
-            . '<div style="text-align:center;margin:40px 0;">'
-            . '<a href="' . htmlspecialchars($download_url) . '" style="display:inline-block;background-color:#2563eb;color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:6px;font-weight:bold;font-size:16px;">Download BioScript</a>'
             . '</div>'
             . '<table style="width:100%;font-size:14px;color:#64748b;border-top:1px solid #e2e8f0;padding-top:20px;">'
             . '<tr><td style="padding:5px 0;"><strong>Order ID:</strong></td><td style="padding:5px 0;text-align:right;">#' . htmlspecialchars((string)$order_id) . '</td></tr>'
@@ -114,7 +108,7 @@ class EmailService
             . '</div>'
             . '</div></body></html>';
 
-        $mail->AltBody = "Your BioScript License Key: $license\nDownload URL: $download_url\nOrder ID: #$order_id";
+        $mail->AltBody = "Your BioScript License Key: $license\nOrder ID: #$order_id";
         $mail->send();
         return true;
     }
