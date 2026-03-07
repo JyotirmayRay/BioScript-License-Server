@@ -36,6 +36,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $pdo->prepare("UPDATE licenses SET status = 'deleted_by_admin' WHERE id = ?")->execute([$id]);
             $success = "License deleted (soft).";
         }
+        elseif ($action === 'hard_delete') {
+            // Safety: Only hard delete if already soft-deleted or revoked
+            $stmt = $pdo->prepare("SELECT status FROM licenses WHERE id = ?");
+            $stmt->execute([$id]);
+            $l = $stmt->fetch();
+            if ($l && in_array($l['status'], ['deleted_by_admin', 'deleted_by_reseller', 'deleted', 'revoked', 'banned'])) {
+                $pdo->prepare("DELETE FROM licenses WHERE id = ?")->execute([$id]);
+                $success = "License record permanently purged from database.";
+            }
+            else {
+                $error = "Hard delete only allowed for already deleted or revoked licenses.";
+            }
+        }
     }
 }
 
@@ -234,26 +247,22 @@ function parse_active_domain($json)
                 <select name="type"
                     class="bg-slate-950/50 border border-slate-700/50 rounded-lg px-4 py-2.5 text-sm text-slate-300 focus:border-rose-500 focus:outline-none transition-all appearance-none cursor-pointer">
                     <option value="">All Types</option>
-                    <option value="standard" <?php if ($filter_type==='standard' )
-    echo 'selected' ; ?>>Standard
+                    <option value="standard" <?php if ($filter_type === 'standard') echo 'selected'; ?>>Standard
                         (Direct)
                     </option>
-                    <option value="reseller_generated" <?php if ($filter_type==='reseller_generated' )
-    echo 'selected' ;
-                        ?>>Reseller Generated</option>
+                    <option value="reseller_generated" <?php if ($filter_type === 'reseller_generated') echo 'selected';
+?>>Reseller Generated</option>
                 </select>
 
                 <div class="flex space-x-2">
                     <select name="status"
                         class="flex-1 bg-slate-950/50 border border-slate-700/50 rounded-lg px-4 py-2.5 text-sm text-slate-300 focus:border-rose-500 focus:outline-none transition-all appearance-none cursor-pointer">
                         <option value="">All Statuses</option>
-                        <option value="active" <?php if ($filter_status==='active' )
-    echo 'selected' ; ?>>Active
+                        <option value="active" <?php if ($filter_status === 'active') echo 'selected'; ?>>Active
                         </option>
-                        <option value="pending_activation" <?php if ($filter_status==='pending_activation' )
-                            echo 'selected' ; ?>>Pending</option>
-                        <option value="revoked" <?php if ($filter_status==='revoked' )
-    echo 'selected' ; ?>>Revoked
+                        <option value="pending_activation" <?php if ($filter_status === 'pending_activation')
+    echo 'selected'; ?>>Pending</option>
+                        <option value="revoked" <?php if ($filter_status === 'revoked') echo 'selected'; ?>>Revoked
                         </option>
                     </select>
                     <button type="submit"
@@ -383,6 +392,21 @@ endif; ?>
                                             class="p-2 text-slate-500 hover:text-emerald-400 transition-colors"
                                             title="Re-activate">
                                             <i class="fas fa-check-circle"></i>
+                                        </button>
+                                    </form>
+                                    <?php
+    endif; ?>
+                                    <?php if ($s === 'deleted_by_admin' || $s === 'deleted_by_reseller' || $s === 'deleted' || $s === 'revoked' || $s === 'banned'): ?>
+                                    <form method="POST" class="inline"
+                                        onsubmit="return confirm('PERMANENTLY PURGE THIS LICENSE?\n\nThis will erase the record from the database forever.');">
+                                        <input type="hidden" name="csrf_token"
+                                            value="<?php echo $_SESSION['csrf_token']; ?>">
+                                        <input type="hidden" name="action" value="hard_delete">
+                                        <input type="hidden" name="license_id" value="<?php echo $l['id']; ?>">
+                                        <button type="submit"
+                                            class="p-2 text-slate-500 hover:text-red-600 transition-colors"
+                                            title="Permanently Purge">
+                                            <i class="fas fa-fire-alt"></i>
                                         </button>
                                     </form>
                                     <?php

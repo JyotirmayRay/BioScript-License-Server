@@ -27,6 +27,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $pdo->prepare("UPDATE licenses SET status = 'active' WHERE id = ?")->execute([$license_id]);
             $success = "License restored to active.";
         }
+        elseif ($action === 'hard_delete') {
+            // Safety: Only hard delete if already soft-deleted or revoked
+            $stmt = $pdo->prepare("SELECT status FROM licenses WHERE id = ?");
+            $stmt->execute([$license_id]);
+            $l = $stmt->fetch();
+            if ($l && in_array($l['status'], ['deleted_by_reseller', 'deleted_by_admin', 'revoked', 'banned'])) {
+                $pdo->prepare("DELETE FROM licenses WHERE id = ?")->execute([$license_id]);
+                $success = "License record permanently purged.";
+            }
+            else {
+                $error = "Hard delete only allowed for revoked or deleted licenses.";
+            }
+        }
     }
 }
 
@@ -319,7 +332,20 @@ endif; ?>
                                     </form>
                                     <?php
     endif; ?>
-                                    <?php if ($s !== 'deleted_by_admin'): ?>
+                                    <?php if ($s === 'deleted_by_admin' || $s === 'deleted_by_reseller' || $s === 'revoked' || $s === 'banned'): ?>
+                                    <form method="POST" class="inline"
+                                        onsubmit="return confirm('PERMANENTLY PURGE THIS LICENSE?\n\nThis will erase the record from the database forever.');">
+                                        <input type="hidden" name="csrf_token"
+                                            value="<?php echo $_SESSION['csrf_token']; ?>">
+                                        <input type="hidden" name="license_id" value="<?php echo $c['id']; ?>">
+                                        <input type="hidden" name="action" value="hard_delete">
+                                        <button type="submit"
+                                            class="p-2 text-slate-500 hover:text-red-600 transition-colors"
+                                            title="Permanently Purge"><i class="fas fa-fire-alt"></i></button>
+                                    </form>
+                                    <?php
+    endif; ?>
+                                    <?php if ($s !== 'deleted_by_admin' && $s !== 'deleted_by_reseller'): ?>
                                     <form method="POST" class="inline"
                                         onsubmit="return confirm('Delete this license?');">
                                         <input type="hidden" name="csrf_token"

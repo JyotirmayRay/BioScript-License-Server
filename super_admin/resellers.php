@@ -114,6 +114,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $success = "Reseller deleted (soft). Login blocked.";
         }
     }
+    elseif ($action === 'hard_delete') {
+        $id = (int)($_POST['reseller_id'] ?? 0);
+        if ($id > 0) {
+            // Safety: Only hard delete if already soft-deleted
+            $stmt = $pdo->prepare("SELECT status FROM resellers WHERE id = ?");
+            $stmt->execute([$id]);
+            $r = $stmt->fetch();
+            if ($r && $r['status'] === 'deleted') {
+                $pdo->prepare("DELETE FROM resellers WHERE id = ?")->execute([$id]);
+                $success = "Reseller permanently removed from database.";
+            }
+            else {
+                $error = "Hard delete only allowed for archived/soft-deleted accounts.";
+            }
+        }
+    }
 }
 
 // Fetch Resellers with aggregate metrics including deleted_by_reseller count
@@ -163,7 +179,7 @@ $archived_resellers = $pdo->query($archived_query)->fetchAll(PDO::FETCH_ASSOC);
                         mono: ['JetBrains Mono', 'monospace'],
                     }
                 }
-            }
+        }
         }
     </script>
     <link
@@ -462,6 +478,18 @@ endif; ?>
                                         <i class="fas fa-undo mr-1"></i> Restore
                                     </button>
                                 </form>
+
+                                <form method="POST" class="inline"
+                                    onsubmit="return confirm('PERMANENTLY DELETE THIS RESELLER?\n\nThis action is IRREVERSIBLE. All data for this account will be purged.');">
+                                    <input type="hidden" name="csrf_token"
+                                        value="<?php echo $_SESSION['csrf_token']; ?>">
+                                    <input type="hidden" name="reseller_id" value="<?php echo $ar['id']; ?>">
+                                    <input type="hidden" name="action" value="hard_delete">
+                                    <button type="submit"
+                                        class="bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 rounded-lg px-3 py-1.5 text-[10px] font-black uppercase tracking-widest transition-all ml-1">
+                                        <i class="fas fa-fire-alt mr-1"></i> PURGE
+                                    </button>
+                                </form>
                             </td>
                         </tr>
                         <?php
@@ -539,7 +567,7 @@ endif; ?>
         function openEditModal(id, email) {
             document.getElementById('editId').value = id;
             document.getElementById('editEmail').value = email;
-            document.getElementById('editModal').classList.remove('hidden');
+            document.getElementById('editModal').classLiemoden');
         }
     </script>
 </body>
