@@ -158,30 +158,10 @@ try {
     }
 
     // --- RESELLER PENDING FLOW (EMAIL VERIFICATION) ---
+    // Update: We allow activation but track it as unverified
     if ($license['type'] === 'reseller_generated' && $license['status'] === 'pending_activation') {
-
-        $stmt = $pdo->prepare("SELECT * FROM email_verifications WHERE license_key = ? ORDER BY id DESC LIMIT 1");
-        $stmt->execute([$license_key]);
-        $existing_verification = $stmt->fetch();
-
-        $token_valid = ($existing_verification && $existing_verification['verified'] == 0 && strtotime($existing_verification['expires_at']) > time());
-
-        if (!$token_valid) {
-            // Generate a new token
-            $token = bin2hex(random_bytes(16));
-            $expires = date('Y-m-d H:i:s', time() + 1800); // +30 mins
-
-        $stmt = $pdo->prepare("INSERT INTO email_verifications (license_key, verification_token, expires_at) VALUES (?, ?, ?)");
-            $stmt->execute([$license_key, $token, $expires]);
-
-            log_activation_event($pdo, $license_key, $domain, $client_ip, 'verification_required');
-    send_json_error('Please check your email to verify this license.', 'invalid', 'verification_required');
-    // In a real scenario, this is where we would trigger the SMTP mail() to $stored_email with verify-email.php?token=$token
-        }
-        else {
-            log_activation_event($pdo, $license_key, $domain, $client_ip, 'verification_still_pending');
-    send_json_error('A verification email was already sent. Please check your inbox.', 'invalid', 'verification_required');
-        }
+    // We do NOT block anymore, we just note that verification is pending
+    // The client-side dashboard will handle the gate.
     }
 
     // --- DOMAIN LOCKING & ACTIVATION (Status Active) ---
@@ -293,7 +273,7 @@ try {
     $payload_json = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     $signature = hash_hmac('sha256', $payload_json, SHARED_SECRET);
 
- 
+
     echo json_encode(['status' => 'success', 'payload' => $payload_json, 'signature' => $signature]);
     exit;
 
