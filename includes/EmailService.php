@@ -77,7 +77,7 @@ class EmailService
     public static function sendLicense(PDO $pdo, $order_id, string $license, string $email): bool
     {
         $mail = self::createMailer($pdo, $email);
-        $mail->Subject = 'Your BioScript License Key — Download Ready';
+        $mail->Subject = 'Your BioScript License Key - Download Ready';
 
         $download_url = 'https://license.bioscript.link/download/bioscript?license=' . urlencode($license);
 
