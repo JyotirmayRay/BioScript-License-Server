@@ -1,0 +1,9 @@
+# Disable Directory Indexing
+Options -Indexes
+DirectoryIndex index.php index.html
+
+# Prevent access to specific sensitive files
+<FilesMatch "^\.env|config\.php|authority\.db$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
