@@ -67,28 +67,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // 5. Sticky CTA visibility (Mobile)
-    const heroSection = document.getElementById('hero');
-    const pricingSection = document.getElementById('pricing');
-    const stickyBar = document.getElementById('mobileStickyBar');
+    // 5. Sticky Conversion Bar Logic
+    const stickyBar = document.getElementById('stickyConversionBar');
 
-    if (stickyBar && heroSection && pricingSection) {
+    if (stickyBar) {
         window.addEventListener('scroll', () => {
-            const heroBottom = heroSection.getBoundingClientRect().bottom;
-            const pricingTop = pricingSection.getBoundingClientRect().top;
-
-            // Show if we scrolled past hero, BUT hide if we reached pricing
-            if (heroBottom < 0 && pricingTop > window.innerHeight) {
-                stickyBar.style.display = 'block';
-                // Small delay to allow display:block to apply before transforming
-                setTimeout(() => stickyBar.style.transform = 'translateY(0)', 10);
+            if (window.scrollY > 500) {
+                stickyBar.classList.add('visible');
             } else {
-                stickyBar.style.transform = 'translateY(100%)';
-                setTimeout(() => {
-                    if (stickyBar.style.transform === 'translateY(100%)') {
-                        stickyBar.style.display = 'none';
-                    }
-                }, 300);
+                stickyBar.classList.remove('visible');
             }
         }, { passive: true });
     }

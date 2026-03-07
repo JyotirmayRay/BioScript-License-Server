@@ -1,0 +1,3 @@
+# Deny direct web access to ZIP files in storage
+Options -Indexes
+Deny from all

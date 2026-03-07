@@ -12,6 +12,7 @@ try {
     // Connect to SQLite Database
     $pdo = new PDO('sqlite:' . DB_PATH);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $pdo->exec('PRAGMA journal_mode = wal;');
     $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
     // --- TABLE: LICENSES ---
@@ -125,14 +126,89 @@ try {
         total_received INTEGER DEFAULT 0
     )");
 
+    // --- TABLE: RESELLERS (Phase 1) ---
+    $pdo->exec("CREATE TABLE IF NOT EXISTS resellers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        email TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        license_key TEXT UNIQUE,
+        total_generated INTEGER DEFAULT 0,
+        total_active INTEGER DEFAULT 0,
+        status TEXT DEFAULT 'active',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS email_verifications (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        license_key TEXT NOT NULL,
+        verification_token TEXT UNIQUE NOT NULL,
+        expires_at DATETIME NOT NULL,
+        verified INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS license_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        license_key TEXT NOT NULL,
+        domain TEXT,
+        ip_address TEXT,
+        event TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS api_rate_limits (
+        ip TEXT NOT NULL,
+        attempt_time DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS domain_blacklist (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        domain TEXT UNIQUE NOT NULL,
+        reason TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS security_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ip_address TEXT,
+        event TEXT,
+        details TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS system_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        event_type TEXT NOT NULL,
+        details TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS download_tokens (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        license_key TEXT NOT NULL,
+        token TEXT UNIQUE NOT NULL,
+        expires_at DATETIME NOT NULL,
+        used INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    ");
+
+    // Performance Indexes
+    $pdo->exec("CREATE INDEX IF NOT EXISTS idx_licenses_key ON licenses(license_key);");
+    $pdo->exec("CREATE INDEX IF NOT EXISTS idx_licenses_reseller ON licenses(reseller_id);");
+
     // --- MIGRATIONS: Add missing columns to existing tables (safe - catches error if column exists) ---
     $migrations = [
-        // licenses table
+        // licenses table (Original)
         "ALTER TABLE licenses ADD COLUMN installation_fingerprint TEXT",
         "ALTER TABLE licenses ADD COLUMN last_verified_at DATETIME",
         "ALTER TABLE licenses ADD COLUMN registered_domains TEXT DEFAULT '[]'",
         "ALTER TABLE licenses ADD COLUMN max_domains INTEGER DEFAULT 1",
         "ALTER TABLE licenses ADD COLUMN tier TEXT DEFAULT 'Standard'",
+        // licenses table (Reseller Phase 1)
+        "ALTER TABLE licenses ADD COLUMN type TEXT DEFAULT 'standard'",
+        "ALTER TABLE licenses ADD COLUMN reseller_id INTEGER NULL",
+        "ALTER TABLE licenses ADD COLUMN activated_at DATETIME NULL",
         // orders table
         "ALTER TABLE orders ADD COLUMN woo_order_id TEXT",
         "ALTER TABLE orders ADD COLUMN customer_email TEXT",
@@ -145,6 +221,10 @@ try {
         "ALTER TABLE settings ADD COLUMN woo_consumer_key TEXT DEFAULT ''",
         "ALTER TABLE settings ADD COLUMN woo_consumer_secret TEXT DEFAULT ''",
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_woo_order_id ON orders(woo_order_id)",
+        // resellers Phase 4
+        "ALTER TABLE resellers ADD COLUMN license_key TEXT",
+        "ALTER TABLE resellers ADD COLUMN total_generated INTEGER DEFAULT 0",
+        "ALTER TABLE resellers ADD COLUMN total_active INTEGER DEFAULT 0",
     ];
     foreach ($migrations as $sql) {
         try {
@@ -157,6 +237,24 @@ try {
     // Ensure unique index on system_settings.key
     try {
         $pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_settings_key ON system_settings(key)");
+    }
+    catch (Exception $e) {
+    }
+
+    // Phase 4: Unique index on resellers.license_key (ALTER TABLE doesn't support UNIQUE in SQLite)
+    try {
+        $pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_resellers_license_key ON resellers(license_key)");
+    }
+    catch (Exception $e) {
+    }
+    // Phase 4: Performance indexes for download_tokens
+    try {
+        $pdo->exec("CREATE INDEX IF NOT EXISTS idx_download_tokens_token ON download_tokens(token)");
+    }
+    catch (Exception $e) {
+    }
+    try {
+        $pdo->exec("CREATE INDEX IF NOT EXISTS idx_download_tokens_license ON download_tokens(license_key)");
     }
     catch (Exception $e) {
     }

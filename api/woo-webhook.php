@@ -200,32 +200,107 @@ try {
         $check->execute([$order_id]);
 
         if (!$check->fetch()) {
-            $license = generateLicense();
 
-            // Insert license
-            $stmt = $pdo->prepare("INSERT INTO licenses (license_key, client_email, status, created_at) VALUES (?, ?, 'active', CURRENT_TIMESTAMP)");
-            $stmt->execute([$license, $email]);
-
-            // Update order
-            $stmt = $pdo->prepare("UPDATE orders SET license_key = ? WHERE woo_order_id = ?");
-            $stmt->execute([$license, $order_id]);
-
-            // Track processed order
-            $stmt = $pdo->prepare("INSERT INTO processed_orders (woo_order_id) VALUES (?)");
-            $stmt->execute([$order_id]);
-
-            $pdo->commit();
-
-            // Email Delivery (Post-Commit)
-            try {
-                require_once __DIR__ . '/../includes/EmailService.php';
-                EmailService::sendLicense($pdo, $order_id, $license, $email);
-
-                @file_put_contents(__DIR__ . '/../logs/email_success.log', "[" . date('Y-m-d H:i:s') . "] Webhook: Email sent for order $order_id to $email\n", FILE_APPEND);
+            // Determine product type from registry
+            $license_type = 'standard';
+            foreach ($line_items as $item) {
+                if (!isset($item['product_id']))
+                    continue;
+                $stmt = $pdo->prepare("SELECT license_type FROM products_registry WHERE woo_product_id = ? AND active = 1");
+                $stmt->execute([(string)$item['product_id']]);
+                $row = $stmt->fetch();
+                if ($row) {
+                    $license_type = $row['license_type'] ?? 'standard';
+                    break;
+                }
             }
-            catch (Exception $e) {
-                @file_put_contents(__DIR__ . '/../logs/email_error.log', "[" . date('Y-m-d H:i:s') . "] Webhook Order: $order_id | Error: " . $e->getMessage() . "\n", FILE_APPEND);
-                log_error("Email delivery failed for order $order_id: " . $e->getMessage());
+
+            // ── RESELLER PURCHASE ──────────────────────────────────────────────
+            if ($license_type === 'reseller') {
+
+                // Generate RES-XXXX-XXXX-XXXX key
+                $chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+                $generateSegment = function () use ($chars) {
+                    $s = '';
+                    for ($i = 0; $i < 4; $i++)
+                        $s .= $chars[random_int(0, strlen($chars) - 1)];
+                    return $s;
+                };
+                $reseller_license = 'RES-' . $generateSegment() . '-' . $generateSegment() . '-' . $generateSegment();
+
+                // Secure random password: 14 chars, mixed case+digits
+                $pwd_chars = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+                $plain_password = '';
+                for ($i = 0; $i < 14; $i++) {
+                    $plain_password .= $pwd_chars[random_int(0, strlen($pwd_chars) - 1)];
+                }
+                $password_hash = password_hash($plain_password, PASSWORD_DEFAULT);
+
+                // Insert reseller (ignore if email exists – idempotent)
+                $stmt = $pdo->prepare("INSERT OR IGNORE INTO resellers (email, password_hash, license_key, status) VALUES (?, ?, ?, 'active')");
+                $stmt->execute([$email, $password_hash, $reseller_license]);
+
+                // Log processed order
+                $stmt = $pdo->prepare("INSERT INTO processed_orders (woo_order_id) VALUES (?)");
+                $stmt->execute([$order_id]);
+
+                $pdo->commit();
+
+                // Log system event
+                try {
+                    $pdo->prepare("INSERT INTO system_events (event_type, details) VALUES ('reseller_created', ?)")
+                        ->execute(["Email: $email | License: $reseller_license"]);
+                }
+                catch (Exception $e) {
+                }
+
+                // Send onboarding email
+                try {
+                    require_once __DIR__ . '/../includes/EmailService.php';
+                    EmailService::sendResellerOnboarding($pdo, $email, $plain_password, $reseller_license);
+                    @file_put_contents(__DIR__ . '/../logs/email_success.log', "[" . date('Y-m-d H:i:s') . "] Reseller onboarding email sent to $email\n", FILE_APPEND);
+                }
+                catch (Exception $e) {
+                    @file_put_contents(__DIR__ . '/../logs/email_error.log', "[" . date('Y-m-d H:i:s') . "] Reseller email failed for $email: " . $e->getMessage() . "\n", FILE_APPEND);
+                }
+
+            }
+            // ── STANDARD PURCHASE ──────────────────────────────────────────────
+            else {
+                $license = generateLicense();
+
+                // Insert license
+                $stmt = $pdo->prepare("INSERT INTO licenses (license_key, client_email, status, created_at) VALUES (?, ?, 'active', CURRENT_TIMESTAMP)");
+                $stmt->execute([$license, $email]);
+
+                // Update order
+                $stmt = $pdo->prepare("UPDATE orders SET license_key = ? WHERE woo_order_id = ?");
+                $stmt->execute([$license, $order_id]);
+
+                // Track processed order
+                $stmt = $pdo->prepare("INSERT INTO processed_orders (woo_order_id) VALUES (?)");
+                $stmt->execute([$order_id]);
+
+                $pdo->commit();
+
+                // Log system event
+                try {
+                    $pdo->prepare("INSERT INTO system_events (event_type, details) VALUES ('license_generated', ?)")
+                        ->execute(["License: $license | Email: $email | Order: $order_id"]);
+                }
+                catch (Exception $e) {
+                }
+
+                // Email Delivery (Post-Commit)
+                try {
+                    require_once __DIR__ . '/../includes/EmailService.php';
+                    EmailService::sendLicense($pdo, $order_id, $license, $email);
+                    @file_put_contents(__DIR__ . '/../logs/email_success.log', "[" . date('Y-m-d H:i:s') . "] Webhook: Email sent for order $order_id to $email\n", FILE_APPEND);
+                }
+                catch (Exception $e) {
+                    @file_put_contents(__DIR__ . '/../logs/email_error.log', "[" . date('Y-m-d H:i:s') . "] Webhook Order: $order_id | Error: " . $e->getMessage() . "\n", FILE_APPEND);
+                    log_error("Email delivery failed for order $order_id: " . $e->getMessage());
+                }
             }
         }
         else {

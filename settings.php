@@ -320,6 +320,40 @@ $product_registry = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <i class="fas fa-sliders-h w-5 text-center"></i>
                 <span class="font-semibold tracking-wide text-sm">Global Settings</span>
             </a>
+
+            <div class="mt-8">
+                <p class="px-6 text-[10px] font-black text-rose-500 uppercase tracking-widest mb-3">Super Admin</p>
+
+                <a href="super_admin/resellers.php"
+                    class="flex items-center space-x-3 px-6 py-3 text-slate-400 hover:bg-slate-900 border-l-2 border-transparent hover:border-rose-500 transition-all group">
+                    <i class="fas fa-users-cog w-5 text-center group-hover:text-rose-400 transition-colors"></i>
+                    <span
+                        class="font-semibold tracking-wide text-sm group-hover:text-rose-100 transition-colors">Resellers</span>
+                </a>
+
+                <a href="super_admin/reseller-customers.php"
+                    class="flex items-center space-x-3 px-6 py-3 text-slate-400 hover:bg-slate-900 border-l-2 border-transparent hover:border-rose-500 transition-all group">
+                    <i class="fas fa-user-friends w-5 text-center group-hover:text-rose-400 transition-colors"></i>
+                    <span
+                        class="font-semibold tracking-wide text-sm group-hover:text-rose-100 transition-colors">Reseller
+                        Customers</span>
+                </a>
+
+                <a href="super_admin/license-monitor.php"
+                    class="flex items-center space-x-3 px-6 py-3 text-slate-400 hover:bg-slate-900 border-l-2 border-transparent hover:border-rose-500 transition-all group">
+                    <i class="fas fa-shield-alt w-5 text-center group-hover:text-rose-400 transition-colors"></i>
+                    <span
+                        class="font-semibold tracking-wide text-sm group-hover:text-rose-100 transition-colors">License
+                        Monitor</span>
+                </a>
+
+                <a href="super_admin/domain-blacklist.php"
+                    class="flex items-center space-x-3 px-6 py-3 text-slate-400 hover:bg-slate-900 border-l-2 border-transparent hover:border-rose-500 transition-all group">
+                    <i class="fas fa-ban w-5 text-center group-hover:text-rose-400 transition-colors"></i>
+                    <span class="font-semibold tracking-wide text-sm group-hover:text-rose-100 transition-colors">Domain
+                        Blacklist</span>
+                </a>
+            </div>
         </nav>
 
         <div class="p-4 border-t border-slate-800">
@@ -463,12 +497,12 @@ endif; ?>
                             Status</label>
                         <select name="trigger_status"
                             class="w-full bg-slate-950/50 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-primary-500 focus:outline-none transition-all appearance-none cursor-pointer">
-                            <option value="completed" <?php echo ($sys_settings['trigger_status'] ?? '') === 'completed'
-    ? 'selected' : ''; ?>>completed</option>
+                            <option value="completed" <?php echo ($sys_settings['trigger_status'] ?? '' )==='completed'
+                                ? 'selected' : '' ; ?>>completed</option>
                             <option value="processing" <?php echo ($sys_settings['trigger_status'] ?? ''
-    ) === 'processing' ? 'selected' : ''; ?>>processing</option>
-                            <option value="refunded" <?php echo ($sys_settings['trigger_status'] ?? '') === 'refunded'
-    ? 'selected' : ''; ?>>refunded</option>
+                                )==='processing' ? 'selected' : '' ; ?>>processing</option>
+                            <option value="refunded" <?php echo ($sys_settings['trigger_status'] ?? '' )==='refunded'
+                                ? 'selected' : '' ; ?>>refunded</option>
                         </select>
                     </div>
 
@@ -484,7 +518,7 @@ endif; ?>
                         <label class="flex items-center space-x-3 cursor-pointer group">
                             <div class="relative">
                                 <input type="checkbox" name="auto_license" value="1" <?php echo
-    ($sys_settings['auto_license'] ?? '0') == '1' ? 'checked' : ''; ?> class="sr-only
+                                    ($sys_settings['auto_license'] ?? '0' )=='1' ? 'checked' : '' ; ?> class="sr-only
                                 peer">
                                 <div
                                     class="w-10 h-6 bg-slate-800 rounded-full peer peer-checked:bg-primary-600 transition-all">

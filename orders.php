@@ -467,6 +467,40 @@ $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <i class="fas fa-sliders-h w-5 text-center group-hover:text-slate-300 transition-colors"></i>
                 <span class="font-semibold tracking-wide text-sm">Global Settings</span>
             </a>
+
+            <div class="mt-8">
+                <p class="px-6 text-[10px] font-black text-rose-500 uppercase tracking-widest mb-3">Super Admin</p>
+
+                <a href="super_admin/resellers.php"
+                    class="flex items-center space-x-3 px-6 py-3 text-slate-400 hover:bg-slate-900 border-l-2 border-transparent hover:border-rose-500 transition-all group">
+                    <i class="fas fa-users-cog w-5 text-center group-hover:text-rose-400 transition-colors"></i>
+                    <span
+                        class="font-semibold tracking-wide text-sm group-hover:text-rose-100 transition-colors">Resellers</span>
+                </a>
+
+                <a href="super_admin/reseller-customers.php"
+                    class="flex items-center space-x-3 px-6 py-3 text-slate-400 hover:bg-slate-900 border-l-2 border-transparent hover:border-rose-500 transition-all group">
+                    <i class="fas fa-user-friends w-5 text-center group-hover:text-rose-400 transition-colors"></i>
+                    <span
+                        class="font-semibold tracking-wide text-sm group-hover:text-rose-100 transition-colors">Reseller
+                        Customers</span>
+                </a>
+
+                <a href="super_admin/license-monitor.php"
+                    class="flex items-center space-x-3 px-6 py-3 text-slate-400 hover:bg-slate-900 border-l-2 border-transparent hover:border-rose-500 transition-all group">
+                    <i class="fas fa-shield-alt w-5 text-center group-hover:text-rose-400 transition-colors"></i>
+                    <span
+                        class="font-semibold tracking-wide text-sm group-hover:text-rose-100 transition-colors">License
+                        Monitor</span>
+                </a>
+
+                <a href="super_admin/domain-blacklist.php"
+                    class="flex items-center space-x-3 px-6 py-3 text-slate-400 hover:bg-slate-900 border-l-2 border-transparent hover:border-rose-500 transition-all group">
+                    <i class="fas fa-ban w-5 text-center group-hover:text-rose-400 transition-colors"></i>
+                    <span class="font-semibold tracking-wide text-sm group-hover:text-rose-100 transition-colors">Domain
+                        Blacklist</span>
+                </a>
+            </div>
         </nav>
 
         <div class="p-4 border-t border-slate-800">
