@@ -171,16 +171,16 @@ try {
             $token = bin2hex(random_bytes(16));
             $expires = date('Y-m-d H:i:s', time() + 1800); // +30 mins
 
-            $stmt = $pdo->prepare("INSERT INTO email_verifications (license_key, verification_token, expires_at) VALUES (?, ?, ?)");
+        $stmt = $pdo->prepare("INSERT INTO email_verifications (license_key, verification_token, expires_at) VALUES (?, ?, ?)");
             $stmt->execute([$license_key, $token, $expires]);
 
             log_activation_event($pdo, $license_key, $domain, $client_ip, 'verification_required');
-            send_json_error('Please check your email to verify this license.', 'invalid', 'verification_required');
-        // In a real scenario, this is where we would trigger the SMTP mail() to $stored_email with verify-email.php?token=$token
+    send_json_error('Please check your email to verify this license.', 'invalid', 'verification_required');
+    // In a real scenario, this is where we would trigger the SMTP mail() to $stored_email with verify-email.php?token=$token
         }
         else {
             log_activation_event($pdo, $license_key, $domain, $client_ip, 'verification_still_pending');
-            send_json_error('A verification email was already sent. Please check your inbox.', 'invalid', 'verification_required');
+    send_json_error('A verification email was already sent. Please check your inbox.', 'invalid', 'verification_required');
         }
     }
 
@@ -241,13 +241,29 @@ try {
                 @file_put_contents(__DIR__ . '/../logs/email_error.log', "[" . date('Y-m-d H:i:s') . "] Onboarding email failed for $license_key: " . $me->getMessage() . "\n", FILE_APPEND);
             }
 
-            $payload = ['status' => 'active', 'domain' => $domain, 'license' => $license_key, 'message' => 'Activated and Locked', 'timestamp' => time()];
+            $payload = [
+                'status' => 'active',
+                'domain' => $domain,
+                'license' => $license_key,
+                'message' => 'Activated and Locked',
+                'verified' => (bool)$license['is_verified'],
+                'client_email' => $license['client_email'],
+                'timestamp' => time()
+            ];
         }
         elseif (in_array($domain, $registered_domains)) {
             // ALREADY REGISTERED ON THIS DOMAIN
             $pdo->prepare("UPDATE licenses SET last_verified_at = CURRENT_TIMESTAMP WHERE id = ?")->execute([$license['id']]);
             log_activation_event($pdo, $license_key, $domain, $client_ip, 'verification_success');
-            $payload = ['status' => 'active', 'domain' => $domain, 'license' => $license_key, 'message' => 'License Valid', 'timestamp' => time()];
+            $payload = [
+                'status' => 'active',
+                'domain' => $domain,
+                'license' => $license_key,
+                'message' => 'License Valid',
+                'verified' => (bool)$license['is_verified'],
+                'client_email' => $license['client_email'],
+                'timestamp' => time()
+            ];
         }
         else {
             // MULTI-DOMAIN TIER CHECK
@@ -257,7 +273,15 @@ try {
                     ->execute([json_encode($registered_domains), $license['id']]);
 
                 log_activation_event($pdo, $license_key, $domain, $client_ip, 'domain_added');
-                $payload = ['status' => 'active', 'domain' => $domain, 'license' => $license_key, 'message' => 'Domain Added', 'timestamp' => time()];
+                $payload = [
+                    'status' => 'active',
+                    'domain' => $domain,
+                    'license' => $license_key,
+                    'message' => 'Domain Added',
+                    'verified' => (bool)$license['is_verified'],
+                    'client_email' => $license['client_email'],
+                    'timestamp' => time()
+                ];
             }
             else {
                 log_activation_event($pdo, $license_key, $domain, $client_ip, 'domain_mismatch');
@@ -269,6 +293,7 @@ try {
     $payload_json = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     $signature = hash_hmac('sha256', $payload_json, SHARED_SECRET);
 
+ 
     echo json_encode(['status' => 'success', 'payload' => $payload_json, 'signature' => $signature]);
     exit;
 
@@ -282,7 +307,6 @@ catch (Throwable $e) {
     $err_log = "[" . date('Y-m-d H:i:s') . "] API Exception: " . $e->getMessage() . "\n";
     @file_put_contents($log_dir . '/api_error.log', $err_log, FILE_APPEND);
 
-    // We don't use send_json_error here because it might be a pre-DB connection failure
     // We hardcode a generic response that the client parser won't crash on
     echo json_encode([
         'status' => 'success',

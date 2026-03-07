@@ -26,6 +26,7 @@ try {
         registered_domains TEXT DEFAULT '[]',
         installation_fingerprint TEXT,
         status TEXT DEFAULT 'active',
+        is_verified INTEGER DEFAULT 1,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         last_verified_at DATETIME
     )");
@@ -296,6 +297,7 @@ try {
         "ALTER TABLE licenses ADD COLUMN type TEXT DEFAULT 'standard'",
         "ALTER TABLE licenses ADD COLUMN reseller_id INTEGER NULL",
         "ALTER TABLE licenses ADD COLUMN activated_at DATETIME NULL",
+        "ALTER TABLE licenses ADD COLUMN is_verified INTEGER DEFAULT 1",
         // orders table
         "ALTER TABLE orders ADD COLUMN woo_order_id TEXT",
         "ALTER TABLE orders ADD COLUMN customer_email TEXT",

@@ -124,8 +124,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate'])) {
                     try {
                         $pdo->beginTransaction();
 
-                        // Insert license as pending_activation
-                        $stmt = $pdo->prepare("INSERT INTO licenses (license_key, client_email, type, reseller_id, status, max_domains) VALUES (:key, :email, 'reseller_generated', :reseller_id, 'pending_activation', 1)");
+                        // Insert license as pending_activation (is_verified = 0)
+                        $stmt = $pdo->prepare("INSERT INTO licenses (license_key, client_email, type, reseller_id, status, max_domains, is_verified) VALUES (:key, :email, 'reseller_generated', :reseller_id, 'pending_activation', 1, 0)");
                         $stmt->execute([
                             ':key' => $final_key,
                             ':email' => $customer_email,

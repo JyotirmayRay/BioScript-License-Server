@@ -42,8 +42,8 @@ if (!empty($token)) {
                         $stmt = $pdo->prepare("UPDATE email_verifications SET verified = 1 WHERE id = ?");
                         $stmt->execute([$verification['id']]);
 
-                        // Set license to active and record activation time
-                        $stmt = $pdo->prepare("UPDATE licenses SET status = 'active', activated_at = CURRENT_TIMESTAMP WHERE license_key = ?");
+                        // Set license to active and record activation time, and MARK AS VERIFIED
+                        $stmt = $pdo->prepare("UPDATE licenses SET status = 'active', activated_at = CURRENT_TIMESTAMP, is_verified = 1 WHERE license_key = ?");
                         $stmt->execute([$license_key]);
 
                         // Log the event
