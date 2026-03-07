@@ -126,6 +126,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $success = "Order $order_id deleted (soft).";
             }
 
+            if ($action === 'hard_delete_order') {
+                $pdo->beginTransaction();
+                try {
+                    $pdo->prepare("DELETE FROM orders WHERE woo_order_id = ?")->execute([$order_id]);
+                    $pdo->prepare("DELETE FROM order_logs WHERE woo_order_id = ?")->execute([$order_id]);
+                    $pdo->commit();
+                    $success = "Order $order_id and associated logs permanently purged.";
+                } catch (Exception $e) {
+                    $pdo->rollBack();
+                    $error = "Purge failed: " . $e->getMessage();
+                }
+            }
+
             if ($action === 'update_status') {
                 $new_status = trim($_POST['new_status'] ?? '');
                 $allowed = ['completed', 'processing', 'on-hold', 'refunded', 'cancelled'];
@@ -728,8 +741,23 @@ $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                             value="<?php echo htmlspecialchars($order['woo_order_id']); ?>">
                                         <button type="submit"
                                             class="bg-slate-800 hover:bg-red-500/20 text-slate-500 hover:text-red-400 border border-slate-700/50 hover:border-red-500/20 rounded px-2 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors"
-                                            title="Delete Order">
+                                            title="Delete Order (Soft)">
                                             <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </form>
+
+                                    <!-- New Hard Delete -->
+                                    <form method="POST" class="inline"
+                                        onsubmit="return confirm('PERMANENTLY PURGE THIS ORDER?\n\nWARNING: This will erase the order record and all its webhook logs from the database forever. This cannot be undone.');">
+                                        <input type="hidden" name="csrf_token"
+                                            value="<?php echo $_SESSION['csrf_token']; ?>">
+                                        <input type="hidden" name="action" value="hard_delete_order">
+                                        <input type="hidden" name="order_id"
+                                            value="<?php echo htmlspecialchars($order['woo_order_id']); ?>">
+                                        <button type="submit"
+                                            class="bg-slate-800 hover:bg-red-600/20 text-slate-500 hover:text-red-600 border border-slate-700/50 hover:border-red-600/20 rounded px-2 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors"
+                                            title="Permanently Purge (Hard Delete)">
+                                            <i class="fas fa-fire-alt"></i>
                                         </button>
                                     </form>
                                 </div>
