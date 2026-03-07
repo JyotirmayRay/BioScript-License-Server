@@ -204,28 +204,35 @@ class EmailService
      */
     public static function sendVerification(PDO $pdo, string $email, string $verify_url): bool
     {
-        $mail = self::createMailer($pdo, $email);
-        $mail->Subject = 'Verify Your BioScript License — Unlock Dashboard';
+        try {
+            $mail = self::createMailer($pdo, $email);
+            $mail->Subject = 'Verify Your BioScript License — Complete Setup';
 
-        $mail->Body = '<html><body style="font-family:Arial,sans-serif;background:#0f172a;color:#fff;padding:40px;margin:0;">'
-            . '<div style="max-width:600px;margin:0 auto;background:#1e293b;border-radius:12px;overflow:hidden;border:1px solid #334155;">'
-            . '<div style="padding:30px;border-bottom:1px solid #334155;background:linear-gradient(135deg,#0f172a,#1e293b);">'
-            . '<h2 style="margin:0;color:#38bdf8;font-size:22px;text-transform:uppercase;letter-spacing:2px;">Verify Ownership</h2>'
-            . '</div>'
-            . '<div style="padding:40px;">'
-            . '<p style="margin-top:0;font-size:16px;color:#94a3b8;">To unlock your BioScript dashboard and access all features, please verify your email address by clicking the button below.</p>'
-            . '<div style="text-align:center;margin:35px 0;">'
-            . '<a href="' . htmlspecialchars($verify_url) . '" style="display:inline-block;background:#0ea5e9;color:#fff;text-decoration:none;padding:16px 36px;border-radius:12px;font-weight:bold;font-size:15px;box-shadow:0 10px 15px -3px rgba(14, 165, 233, 0.3);">Verify Email Now</a>'
-            . '</div>'
-            . '<p style="font-size:12px;color:#64748b;margin-bottom:0;">This verification link will expire in 30 minutes for security reasons.</p>'
-            . '</div>'
-            . '<div style="padding:20px;text-align:center;background:#0f172a;border-top:1px solid #334155;">'
-            . '<p style="margin:0;font-size:11px;color:#475569;">BioScript Fortress &bull; Secure License Network</p>'
-            . '</div>'
-            . '</div></body></html>';
+            // Minimalist, high-deliverability HTML
+            $mail->Body = '<html><body style="font-family: sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">'
+                . '<h2 style="color: #0ea5e9;">Action Required: Verify Your Email</h2>'
+                . '<p>Thank you for choosing BioScript! Please verify your email address to unlock your dashboard and access all features.</p>'
+                . '<div style="margin: 30px 0; text-align: center;">'
+                . '<a href="' . htmlspecialchars($verify_url) . '" style="background-color: #0ea5e9; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Verify Email Now</a>'
+                . '</div>'
+                . '<p style="font-size: 13px; color: #666;">If the button above doesn\'t work, copy and paste this link into your browser:<br>'
+                . '<a href="' . htmlspecialchars($verify_url) . '">' . htmlspecialchars($verify_url) . '</a></p>'
+                . '<hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">'
+                . '<p style="font-size: 11px; color: #999;">This is an automated security message. This link will expire in 30 minutes.</p>'
+                . '</body></html>';
 
-        $mail->AltBody = "Verify Your BioScript License: $verify_url\n\nThis link expires in 30 minutes.";
-        return $mail->send();
+            $mail->AltBody = "Please verify your BioScript license by clicking the link below:\n\n$verify_url\n\nThis link expires in 30 minutes.";
+
+            $sent = $mail->send();
+            if (!$sent) {
+                @file_put_contents(__DIR__ . '/../logs/email_error.log', "[" . date('Y-m-d H:i:s') . "] Mailer Error for $email: " . $mail->ErrorInfo . "\n", FILE_APPEND);
+            }
+            return $sent;
+        }
+        catch (Exception $e) {
+            @file_put_contents(__DIR__ . '/../logs/email_error.log', "[" . date('Y-m-d H:i:s') . "] Exception for $email: " . $e->getMessage() . "\n", FILE_APPEND);
+            return false;
+        }
     }
 
     /**
@@ -233,9 +240,14 @@ class EmailService
      */
     public static function sendTestEmail(PDO $pdo, string $test_email): bool
     {
-        $mail = self::createMailer($pdo, $test_email);
-        $mail->Subject = 'SMTP Config Test — BioScript';
-        $mail->Body = '<p>Settings verified! This is a test email from BioScript License Server.</p>';
-        return $mail->send();
+        try {
+            $mail = self::createMailer($pdo, $test_email);
+            $mail->Subject = 'SMTP Config Test — BioScript';
+            $mail->Body = '<html><body><h3>SMTP Settings Verified</h3><p>This is a test email from your BioScript License Server.</p></body></html>';
+            return $mail->send();
+        }
+        catch (Exception $e) {
+            return false;
+        }
     }
 }
