@@ -150,35 +150,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate'])) {
                             'ip' => $client_ip, 'reseller_id' => $reseller_id, 'email' => $reseller_email
                         ]);
 
-                        // Send verification email to buyer (non-blocking — don't fail on SMTP errors)
+                        // Send verification email via centralized service
                         try {
                             require_once __DIR__ . '/../includes/EmailService.php';
-                            $verify_url = 'https://license.bioscript.link/verify-email.php?token=' . urlencode($verification_token);
+                            $verify_url = (defined('LICENSE_SERVER_URL') ? LICENSE_SERVER_URL : 'https://license.bioscript.link') . '/verify-email.php?token=' . urlencode($verification_token);
 
-                            $mail = EmailService::createMailer($pdo, $customer_email);
-                            $mail->Subject = 'Verify Your BioScript License';
-                            $mail->Body = '<html><body style="font-family:Arial,sans-serif;background:#0f172a;color:#fff;padding:40px;margin:0;">'
-                                . '<div style="max-width:600px;margin:0 auto;background:#1e293b;border-radius:12px;overflow:hidden;border:1px solid #334155;">'
-                                . '<div style="padding:30px;border-bottom:1px solid #334155;background:linear-gradient(135deg,#0f172a,#1e293b);">'
-                                . '<h2 style="margin:0;color:#38bdf8;font-size:22px;text-transform:uppercase;letter-spacing:2px;">Verify Your Email</h2>'
-                                . '</div><div style="padding:40px;">'
-                                . '<p style="margin-top:0;color:#94a3b8;">A BioScript license has been issued to this email address. Please verify your email to activate it.</p>'
-                                . '<div style="margin:24px 0;padding:20px;background:#0f172a;border-radius:8px;border:1px dashed #334155;text-align:center;">'
-                                . '<p style="margin:0 0 8px 0;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#64748b;">Your License Key</p>'
-                                . '<div style="font-family:monospace;font-size:20px;font-weight:bold;color:#10b981;letter-spacing:2px;">' . htmlspecialchars($final_key) . '</div>'
-                                . '</div>'
-                                . '<div style="text-align:center;margin-top:24px;">'
-                                . '<a href="' . htmlspecialchars($verify_url) . '" style="display:inline-block;background:linear-gradient(135deg,#0ea5e9,#0284c7);color:#fff;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:bold;font-size:14px;">Verify Email &amp; Activate License</a>'
-                                . '</div>'
-                                . '<p style="font-size:12px;color:#64748b;margin-top:20px;text-align:center;">This verification link expires in 30 minutes.</p>'
-                                . '</div><div style="padding:16px;text-align:center;background:#0f172a;border-top:1px solid #334155;">'
-                                . '<p style="margin:0;font-size:11px;color:#475569;">&copy; ' . date('Y') . ' BioScript</p>'
-                                . '</div></div></body></html>';
-                            $mail->send();
-
-                            ResellerLogger::log($pdo, 'verification_email_sent', "Token sent to $customer_email for license $final_key", [
-                                'ip' => $client_ip, 'reseller_id' => $reseller_id, 'email' => $customer_email
-                            ]);
+                            if (EmailService::sendVerification($pdo, $customer_email, $verify_url)) {
+                                ResellerLogger::log($pdo, 'verification_email_sent', "Token sent to $customer_email for license $final_key", [
+                                    'ip' => $client_ip, 'reseller_id' => $reseller_id, 'email' => $customer_email
+                                ]);
+                            }
+                            else {
+                                throw new Exception("EmailService returned false");
+                            }
                         }
                         catch (\Throwable $mailErr) {
                             // Log but don't fail — license was still created
