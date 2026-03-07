@@ -332,19 +332,17 @@ endif; ?>
                                     </form>
                                     <?php
     endif; ?>
-                                    <?php if ($s === 'deleted_by_admin' || $s === 'deleted_by_reseller' || $s === 'revoked' || $s === 'banned'): ?>
                                     <form method="POST" class="inline"
-                                        onsubmit="return confirm('PERMANENTLY PURGE THIS LICENSE?\n\nThis will erase the record from the database forever.');">
+                                        onsubmit="return confirm('PERMANENTLY PURGE THIS LICENSE?\n\nWARNING: This will erase the record from the database forever. This cannot be undone.');">
                                         <input type="hidden" name="csrf_token"
                                             value="<?php echo $_SESSION['csrf_token']; ?>">
                                         <input type="hidden" name="license_id" value="<?php echo $c['id']; ?>">
                                         <input type="hidden" name="action" value="hard_delete">
                                         <button type="submit"
                                             class="p-2 text-slate-500 hover:text-red-600 transition-colors"
-                                            title="Permanently Purge"><i class="fas fa-fire-alt"></i></button>
+                                            title="Permanently Purge (Hard Delete)"><i
+                                                class="fas fa-fire-alt"></i></button>
                                     </form>
-                                    <?php
-    endif; ?>
                                     <?php if ($s !== 'deleted_by_admin' && $s !== 'deleted_by_reseller'): ?>
                                     <form method="POST" class="inline"
                                         onsubmit="return confirm('Delete this license?');">
@@ -404,8 +402,3 @@ endif; ?>
             </div>
             <?php
 endif; ?>
-        </div>
-    </main>
-</body>
-
-</html>

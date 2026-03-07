@@ -396,21 +396,18 @@ endif; ?>
                                     </form>
                                     <?php
     endif; ?>
-                                    <?php if ($s === 'deleted_by_admin' || $s === 'deleted_by_reseller' || $s === 'deleted' || $s === 'revoked' || $s === 'banned'): ?>
                                     <form method="POST" class="inline"
-                                        onsubmit="return confirm('PERMANENTLY PURGE THIS LICENSE?\n\nThis will erase the record from the database forever.');">
+                                        onsubmit="return confirm('PERMANENTLY PURGE THIS LICENSE?\n\nWARNING: This will erase the record from the database forever. This cannot be undone.');">
                                         <input type="hidden" name="csrf_token"
                                             value="<?php echo $_SESSION['csrf_token']; ?>">
                                         <input type="hidden" name="action" value="hard_delete">
                                         <input type="hidden" name="license_id" value="<?php echo $l['id']; ?>">
                                         <button type="submit"
                                             class="p-2 text-slate-500 hover:text-red-600 transition-colors"
-                                            title="Permanently Purge">
+                                            title="Permanently Purge (Hard Delete)">
                                             <i class="fas fa-fire-alt"></i>
                                         </button>
                                     </form>
-                                    <?php
-    endif; ?>
                                     <form method="POST" class="inline"
                                         onsubmit="return confirm('Delete this license?');">
                                         <input type="hidden" name="csrf_token"
@@ -517,13 +514,4 @@ endif; ?>
 
     <script>
         function openLicEditModal(id, email, tier, maxDomains) {
-            document.getElementById('licEditId').value = id;
-            document.getElementById('licEditEmail').value = email;
-            document.getElementById('licEditTier').value = tier;
-            document.getElementById('licEditMaxDomains').value = maxDomains;
-            document.getElementById('licEditModal').classList.remove('hidden');
-        }
-    </script>
-</body>
-
-</html>
+    
