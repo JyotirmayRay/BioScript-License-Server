@@ -201,36 +201,60 @@ class EmailService
 
     /**
      * Sends a verification link to the customer.
+     * Includes full SMTP debug logging for troubleshooting delivery issues.
      */
     public static function sendVerification(PDO $pdo, string $email, string $verify_url): bool
     {
+        $log_dir = __DIR__ . '/../logs';
+        if (!is_dir($log_dir)) {
+            @mkdir($log_dir, 0755, true);
+        }
+
         try {
             $mail = self::createMailer($pdo, $email);
-            $mail->Subject = 'Verify Your BioScript License — Complete Setup';
 
-            // Minimalist, high-deliverability HTML
-            $mail->Body = '<html><body style="font-family: sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">'
-                . '<h2 style="color: #0ea5e9;">Action Required: Verify Your Email</h2>'
-                . '<p>Thank you for choosing BioScript! Please verify your email address to unlock your dashboard and access all features.</p>'
-                . '<div style="margin: 30px 0; text-align: center;">'
-                . '<a href="' . htmlspecialchars($verify_url) . '" style="background-color: #0ea5e9; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Verify Email Now</a>'
-                . '</div>'
-                . '<p style="font-size: 13px; color: #666;">If the button above doesn\'t work, copy and paste this link into your browser:<br>'
-                . '<a href="' . htmlspecialchars($verify_url) . '">' . htmlspecialchars($verify_url) . '</a></p>'
-                . '<hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">'
-                . '<p style="font-size: 11px; color: #999;">This is an automated security message. This link will expire in 30 minutes.</p>'
+            // Enable SMTP debug — capture the full server conversation
+            $mail->SMTPDebug = 2;
+            $smtp_log = '';
+            $mail->Debugoutput = function ($str, $level) use (&$smtp_log) {
+                $smtp_log .= "[L$level] $str";
+            };
+
+            // Deliverability essentials
+            $mail->CharSet = 'UTF-8';
+            $mail->Encoding = 'base64';
+            $from_email = $mail->From;
+            $mail->addReplyTo($from_email, $mail->FromName);
+
+            $mail->Subject = 'Verify your email for BioScript';
+
+            // Clean, minimal HTML — no dark backgrounds, no complex CSS
+            $mail->Body = '<html><body style="font-family: Arial, sans-serif; color: #333333; padding: 20px;">'
+                . '<p>Hello,</p>'
+                . '<p>Please click the link below to verify your email address and unlock your BioScript dashboard:</p>'
+                . '<p><a href="' . htmlspecialchars($verify_url) . '">' . htmlspecialchars($verify_url) . '</a></p>'
+                . '<p>This link will expire in 30 minutes.</p>'
+                . '<p>If you did not request this, you can safely ignore this email.</p>'
+                . '<p>— BioScript Team</p>'
                 . '</body></html>';
 
-            $mail->AltBody = "Please verify your BioScript license by clicking the link below:\n\n$verify_url\n\nThis link expires in 30 minutes.";
+            $mail->AltBody = "Hello,\n\nPlease verify your email for BioScript by visiting:\n$verify_url\n\nThis link expires in 30 minutes.\n\nIf you did not request this, you can safely ignore this email.\n\n— BioScript Team";
 
             $sent = $mail->send();
-            if (!$sent) {
-                @file_put_contents(__DIR__ . '/../logs/email_error.log', "[" . date('Y-m-d H:i:s') . "] Mailer Error for $email: " . $mail->ErrorInfo . "\n", FILE_APPEND);
-            }
+
+            // Always log the SMTP conversation for verification emails
+            @file_put_contents($log_dir . '/smtp_debug.log',
+                "[" . date('Y-m-d H:i:s') . "] TO: $email | RESULT: " . ($sent ? 'SUCCESS' : 'FAILED') . "\n" . $smtp_log . "\n---\n",
+                FILE_APPEND
+            );
+
             return $sent;
         }
-        catch (Exception $e) {
-            @file_put_contents(__DIR__ . '/../logs/email_error.log', "[" . date('Y-m-d H:i:s') . "] Exception for $email: " . $e->getMessage() . "\n", FILE_APPEND);
+        catch (\Exception $e) {
+            @file_put_contents($log_dir . '/smtp_debug.log',
+                "[" . date('Y-m-d H:i:s') . "] EXCEPTION for $email: " . $e->getMessage() . "\n" . ($smtp_log ?? '') . "\n---\n",
+                FILE_APPEND
+            );
             return false;
         }
     }
