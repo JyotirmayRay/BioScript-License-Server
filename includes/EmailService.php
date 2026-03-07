@@ -102,7 +102,7 @@ class EmailService
             . '</ol>'
             . '</div>'
             . '<div style="text-align:center;margin:30px 0;">'
-            . '<a href="' . htmlspecialchars($download_url) . '" style="display:inline-block;background:linear-gradient(135deg,#10b981,#059669);color:#fff;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:bold;font-size:15px;letter-spacing:1px;">&#x2B07; Download BioScript</a>'
+            . '<a href="' . htmlspecialchars($download_url) . '" style="display:inline-block;background:linear-gradient(135deg,#10b981,#059669);color:#fff;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:bold;font-size:15px;letter-spacing:1px;">Download BioScript</a>'
             . '</div>'
             . '<table style="width:100%;font-size:14px;color:#64748b;">'
             . '<tr><td style="padding:5px 0;">Order ID:</td><td style="padding:5px 0;text-align:right;color:#94a3b8;">#' . htmlspecialchars((string)$order_id) . '</td></tr>'
@@ -114,6 +114,7 @@ class EmailService
             . '</div>'
             . '</div></body></html>';
 
+        $mail->AltBody = "Your BioScript License Key: $license\nDownload URL: $download_url\nOrder ID: #$order_id";
         $mail->send();
         return true;
     }
@@ -156,6 +157,7 @@ class EmailService
             . '</div>'
             . '</div></body></html>';
 
+        $mail->AltBody = "Reseller Credentials:\nURL: $login_url\nEmail: $email\nTemp Password: $plain_password\nLicense: $reseller_license";
         $mail->send();
         return true;
     }
@@ -192,8 +194,38 @@ class EmailService
             . '</div>'
             . '</div></body></html>';
 
+        $mail->AltBody = "Your BioScript installation on $domain has been successfully activated. Visit your dashboard to complete setup.";
         $mail->send();
         return true;
+    }
+
+    /**
+     * Sends a verification link to the customer.
+     */
+    public static function sendVerification(PDO $pdo, string $email, string $verify_url): bool
+    {
+        $mail = self::createMailer($pdo, $email);
+        $mail->Subject = 'Verify Your BioScript License — Unlock Dashboard';
+
+        $mail->Body = '<html><body style="font-family:Arial,sans-serif;background:#0f172a;color:#fff;padding:40px;margin:0;">'
+            . '<div style="max-width:600px;margin:0 auto;background:#1e293b;border-radius:12px;overflow:hidden;border:1px solid #334155;">'
+            . '<div style="padding:30px;border-bottom:1px solid #334155;background:linear-gradient(135deg,#0f172a,#1e293b);">'
+            . '<h2 style="margin:0;color:#38bdf8;font-size:22px;text-transform:uppercase;letter-spacing:2px;">Verify Ownership</h2>'
+            . '</div>'
+            . '<div style="padding:40px;">'
+            . '<p style="margin-top:0;font-size:16px;color:#94a3b8;">To unlock your BioScript dashboard and access all features, please verify your email address by clicking the button below.</p>'
+            . '<div style="text-align:center;margin:35px 0;">'
+            . '<a href="' . htmlspecialchars($verify_url) . '" style="display:inline-block;background:#0ea5e9;color:#fff;text-decoration:none;padding:16px 36px;border-radius:12px;font-weight:bold;font-size:15px;box-shadow:0 10px 15px -3px rgba(14, 165, 233, 0.3);">Verify Email Now</a>'
+            . '</div>'
+            . '<p style="font-size:12px;color:#64748b;margin-bottom:0;">This verification link will expire in 30 minutes for security reasons.</p>'
+            . '</div>'
+            . '<div style="padding:20px;text-align:center;background:#0f172a;border-top:1px solid #334155;">'
+            . '<p style="margin:0;font-size:11px;color:#475569;">BioScript Fortress &bull; Secure License Network</p>'
+            . '</div>'
+            . '</div></body></html>';
+
+        $mail->AltBody = "Verify Your BioScript License: $verify_url\n\nThis link expires in 30 minutes.";
+        return $mail->send();
     }
 
     /**

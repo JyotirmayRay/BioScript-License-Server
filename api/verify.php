@@ -209,16 +209,28 @@ try {
                 }
             }
 
-            // Send "Installation Is Ready" email (silently, non-blocking)
+            // Send "Installation Is Ready" or "Verification Required" email
             try {
                 require_once __DIR__ . '/../includes/EmailService.php';
                 $stored_email_for_mail = $license['client_email'] ?? '';
                 if (!empty($stored_email_for_mail)) {
-                    EmailService::sendCustomerOnboarding($pdo, $stored_email_for_mail, $license_key, $domain);
+                    if ($license['type'] === 'reseller_generated' && $license['is_verified'] == 0) {
+                        // Generate a verification token for the first-time email
+                        $token = bin2hex(random_bytes(16));
+                        $expires = date('Y-m-d H:i:s', time() + 1800);
+                        $pdo->prepare("INSERT INTO email_verifications (license_key, verification_token, expires_at) VALUES (?, ?, ?)")
+                            ->execute([$license_key, $token, $expires]);
+
+                        $verify_url = (defined('LICENSE_SERVER_URL') ? LICENSE_SERVER_URL : 'https://license.bioscript.link') . '/verify-email.php?token=' . urlencode($token);
+                        EmailService::sendVerification($pdo, $stored_email_for_mail, $verify_url);
+                    }
+                    else {
+                        EmailService::sendCustomerOnboarding($pdo, $stored_email_for_mail, $license_key, $domain);
+                    }
                 }
             }
             catch (Exception $me) {
-                @file_put_contents(__DIR__ . '/../logs/email_error.log', "[" . date('Y-m-d H:i:s') . "] Onboarding email failed for $license_key: " . $me->getMessage() . "\n", FILE_APPEND);
+                @file_put_contents(__DIR__ . '/../logs/email_error.log', "[" . date('Y-m-d H:i:s') . "] Activation email failed for $license_key: " . $me->getMessage() . "\n", FILE_APPEND);
             }
 
             $payload = [

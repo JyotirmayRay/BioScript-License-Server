@@ -59,21 +59,7 @@ try {
     $customer_email = $license['client_email'];
     $verify_url = (defined('LICENSE_SERVER_URL') ? LICENSE_SERVER_URL : 'https://license.bioscript.link') . '/verify-email.php?token=' . urlencode($token);
 
-    $mail = EmailService::createMailer($pdo, $customer_email);
-    $mail->Subject = 'Verify Your BioScript License';
-    $mail->Body = '<html><body style="font-family:Arial,sans-serif;background:#0f172a;color:#fff;padding:40px;">'
-        . '<div style="max-width:600px;margin:0 auto;background:#1e293b;border-radius:12px;overflow:hidden;border:1px solid #334155;">'
-        . '<div style="padding:30px;background:#0f172a;border-bottom:1px solid #334155;">'
-        . '<h2 style="margin:0;color:#38bdf8;">Verification Link Requested</h2>'
-        . '</div><div style="padding:40px;">'
-        . '<p>Please click the button below to verify your email and unlock your dashboard.</p>'
-        . '<div style="text-align:center;margin-top:24px;">'
-        . '<a href="' . htmlspecialchars($verify_url) . '" style="display:inline-block;background:#0ea5e9;color:#fff;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:bold;">Verify Email Now</a>'
-        . '</div>'
-        . '<p style="font-size:12px;color:#64748b;margin-top:20px;">This link expires in 30 minutes.</p>'
-        . '</div></div></body></html>';
-
-    if ($mail->send()) {
+    if (EmailService::sendVerification($pdo, $customer_email, $verify_url)) {
         echo json_encode(['status' => 'success', 'message' => 'Verification email resent.']);
     }
     else {
