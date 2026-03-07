@@ -6,9 +6,51 @@ require_once __DIR__ . '/../includes/db.php';
 $reseller_id = $_SESSION['reseller_id'];
 $reseller_email = $_SESSION['reseller_email'];
 
-// Calculate total pages for pagination if needed, but for Phase 1 we list them all or limit simply.
-// We will pull all for the reseller ordered by creation date descending.
-$stmt = $pdo->prepare("SELECT id, client_email, license_key, registered_domains, status, created_at FROM licenses WHERE reseller_id = ? ORDER BY created_at DESC");
+$success = null;
+$error = null;
+
+// --- CRUD ACTIONS ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    // CSRF check
+    if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== ($_SESSION['reseller_csrf'] ?? '')) {
+        $error = "Security token mismatch.";
+    }
+    else {
+        $license_id = (int)($_POST['license_id'] ?? 0);
+        $action = $_POST['action'];
+
+        if ($license_id > 0) {
+            // Verify this license belongs to this reseller
+            $stmt = $pdo->prepare("SELECT id, status FROM licenses WHERE id = ? AND reseller_id = ?");
+            $stmt->execute([$license_id, $reseller_id]);
+            $license = $stmt->fetch();
+
+            if ($license) {
+                if ($action === 'revoke' && $license['status'] === 'active') {
+                    $pdo->prepare("UPDATE licenses SET status = 'revoked' WHERE id = ? AND reseller_id = ?")
+                        ->execute([$license_id, $reseller_id]);
+                    $success = "License revoked successfully.";
+                }
+                elseif ($action === 'delete') {
+                    $pdo->prepare("UPDATE licenses SET status = 'deleted_by_reseller' WHERE id = ? AND reseller_id = ?")
+                        ->execute([$license_id, $reseller_id]);
+                    $success = "Customer removed from your panel.";
+                }
+            }
+            else {
+                $error = "License not found or access denied.";
+            }
+        }
+    }
+}
+
+// Ensure CSRF token exists
+if (empty($_SESSION['reseller_csrf'])) {
+    $_SESSION['reseller_csrf'] = bin2hex(random_bytes(32));
+}
+
+// Fetch customers — hide soft-deleted by reseller
+$stmt = $pdo->prepare("SELECT id, client_email, license_key, registered_domains, status, created_at FROM licenses WHERE reseller_id = ? AND status != 'deleted_by_reseller' ORDER BY created_at DESC");
 $stmt->execute([$reseller_id]);
 $customers = $stmt->fetchAll();
 
@@ -155,6 +197,19 @@ $customers = $stmt->fetchAll();
             </a>
         </header>
 
+        <?php if ($success): ?>
+        <div class="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-4 rounded-xl mb-6 flex items-center relative z-10">
+            <i class="fas fa-check-circle mr-3"></i>
+            <span><?php echo htmlspecialchars($success); ?></span>
+        </div>
+        <?php endif; ?>
+        <?php if ($error): ?>
+        <div class="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl mb-6 flex items-center relative z-10">
+            <i class="fas fa-exclamation-circle mr-3"></i>
+            <span><?php echo htmlspecialchars($error); ?></span>
+        </div>
+        <?php endif; ?>
+
         <div class="ent-card rounded-2xl shadow-xl overflow-hidden relative z-10 flex-1 flex flex-col bg-slate-900/50">
             <div class="overflow-x-auto flex-1">
                 <table class="w-full text-left text-sm text-slate-400">
@@ -166,12 +221,13 @@ $customers = $stmt->fetchAll();
                             <th class="px-6 py-5">Active Domain</th>
                             <th class="px-6 py-5">Status</th>
                             <th class="px-6 py-5">Issue Date</th>
+                            <th class="px-6 py-5 text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-800">
                         <?php if (empty($customers)): ?>
                         <tr>
-                            <td colspan="5" class="px-6 py-12 text-center text-slate-500">
+                            <td colspan="6" class="px-6 py-12 text-center text-slate-500">
                                 <div class="flex flex-col items-center justify-center">
                                     <div
                                         class="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mb-4">
@@ -242,6 +298,28 @@ else: ?>
                             </td>
                             <td class="px-6 py-4 text-slate-500 text-xs">
                                 <?php echo date('M d, Y - H:i', strtotime($customer['created_at'])); ?>
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <div class="flex items-center justify-end space-x-1">
+                                    <?php if ($customer['status'] === 'active'): ?>
+                                    <form method="POST" class="inline" onsubmit="return confirm('Revoke this license?');">
+                                        <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['reseller_csrf']; ?>">
+                                        <input type="hidden" name="license_id" value="<?php echo $customer['id']; ?>">
+                                        <input type="hidden" name="action" value="revoke">
+                                        <button type="submit" class="p-2 text-slate-500 hover:text-amber-400 transition-colors" title="Revoke License">
+                                            <i class="fas fa-ban"></i>
+                                        </button>
+                                    </form>
+                                    <?php endif; ?>
+                                    <form method="POST" class="inline" onsubmit="return confirm('Remove this customer from your panel? The license record will be preserved for admin review.');">
+                                        <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['reseller_csrf']; ?>">
+                                        <input type="hidden" name="license_id" value="<?php echo $customer['id']; ?>">
+                                        <input type="hidden" name="action" value="delete">
+                                        <button type="submit" class="p-2 text-slate-500 hover:text-red-400 transition-colors" title="Remove Customer">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                         <?php

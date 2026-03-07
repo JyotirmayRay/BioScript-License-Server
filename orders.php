@@ -86,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         // Re-run the completion logic
                         $email = $order['customer_email'];
                         // (Replicate generateLicense here for portability as per instructions)
-                        $new_license = 'BIO-' . strtoupper(substr(bin2hex(random_bytes(4)), 0, 4)) . '-' . strtoupper(substr(bin2hex(random_bytes(4)), 0, 4));
+                        $new_license = 'BIO-' . strtoupper(substr(bin2hex(random_bytes(2)), 0, 4)) . '-' . strtoupper(substr(bin2hex(random_bytes(2)), 0, 4)) . '-' . strtoupper(substr(bin2hex(random_bytes(2)), 0, 4));
                         
                         try {
                             $pdo->beginTransaction();
@@ -117,6 +117,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 } else {
                     $error = "No raw payload found for this order to retry.";
+                }
+            }
+
+            if ($action === 'delete_order') {
+                $pdo->prepare("UPDATE orders SET status = 'deleted', updated_at = CURRENT_TIMESTAMP WHERE woo_order_id = ?")
+                    ->execute([$order_id]);
+                $success = "Order $order_id deleted (soft).";
+            }
+
+            if ($action === 'update_status') {
+                $new_status = trim($_POST['new_status'] ?? '');
+                $allowed = ['completed', 'processing', 'on-hold', 'refunded', 'cancelled'];
+                if (in_array($new_status, $allowed)) {
+                    $pdo->prepare("UPDATE orders SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE woo_order_id = ?")
+                        ->execute([$new_status, $order_id]);
+                    $success = "Order $order_id status updated to $new_status.";
+                } else {
+                    $error = "Invalid status.";
                 }
             }
             }
@@ -649,9 +667,26 @@ $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 <?php echo $date; ?>
                             </td>
                             <td class="px-6 py-4 text-right">
-                                <?php if ($order['status'] === 'completed'): ?>
                                 <div class="flex items-center justify-end space-x-2">
+                                    <!-- Status Update Dropdown -->
+                                    <form method="POST" class="inline-flex items-center">
+                                        <input type="hidden" name="csrf_token"
+                                            value="<?php echo $_SESSION['csrf_token']; ?>">
+                                        <input type="hidden" name="action" value="update_status">
+                                        <input type="hidden" name="order_id"
+                                            value="<?php echo htmlspecialchars($order['woo_order_id']); ?>">
+                                        <select name="status" onchange="this.form.submit()"
+                                            class="bg-slate-900 border border-slate-700/50 rounded px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 focus:border-emerald-500/50 outline-none transition-all cursor-pointer">
+                                            <option value="" disabled selected>Status</option>
+                                            <option value="completed">Completed</option>
+                                            <option value="pending">Pending</option>
+                                            <option value="failed">Failed</option>
+                                            <option value="refunded">Refunded</option>
+                                        </select>
+                                    </form>
 
+                                    <!-- Existing Resend -->
+                                    <?php if ($order['status'] === 'completed'): ?>
                                     <form method="POST" class="inline">
                                         <input type="hidden" name="csrf_token"
                                             value="<?php echo $_SESSION['csrf_token']; ?>">
@@ -664,7 +699,10 @@ $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                             Resend
                                         </button>
                                     </form>
+                                    <?php endif; ?>
 
+                                    <!-- Existing Revoke -->
+                                    <?php if ($order['status'] === 'completed'): ?>
                                     <form method="POST" class="inline"
                                         onsubmit="return confirm('Are you sure you want to refund this order and permanently revoke the generated license?');">
                                         <input type="hidden" name="csrf_token"
@@ -678,22 +716,29 @@ $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                             Revoke
                                         </button>
                                     </form>
+                                    <?php endif; ?>
 
+                                    <!-- New Delete (Soft) -->
+                                    <form method="POST" class="inline"
+                                        onsubmit="return confirm('Are you sure you want to delete this order record? This will not affect the license if it exists.');">
+                                        <input type="hidden" name="csrf_token"
+                                            value="<?php echo $_SESSION['csrf_token']; ?>">
+                                        <input type="hidden" name="action" value="delete_order">
+                                        <input type="hidden" name="order_id"
+                                            value="<?php echo htmlspecialchars($order['woo_order_id']); ?>">
+                                        <button type="submit"
+                                            class="bg-slate-800 hover:bg-red-500/20 text-slate-500 hover:text-red-400 border border-slate-700/50 hover:border-red-500/20 rounded px-2 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors"
+                                            title="Delete Order">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </form>
                                 </div>
-                                <?php elseif ($order['status'] === 'refunded'): ?>
-                                <span
-                                    class="inline-flex items-center text-[10px] font-bold uppercase tracking-widest text-purple-500">
-                                    <i class="fas fa-ban mr-1"></i> Revoked
-                                </span>
-                                <?php else: ?>
-                                <span class="text-slate-600 text-[10px] font-bold uppercase tracking-widest">—</span>
-                                <?php endif; ?>
                             </td>
                         </tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>
-                <?php if (count() === 0): ?>
+                <?php if (count($orders) === 0): ?>
                 <div class='p-16 text-center text-slate-500'>
                     <i class='fas fa-receipt text-3xl mb-4 opacity-30'></i>
                     <p class='text-xs font-bold uppercase tracking-widest'>No orders found matching criteria</p>

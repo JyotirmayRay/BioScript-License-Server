@@ -1,6 +1,35 @@
 <?php
 require_once __DIR__ . '/auth.php';
 
+$success = null;
+$error = null;
+
+// --- CRUD ACTIONS ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    verify_csrf();
+    $license_id = (int)($_POST['license_id'] ?? 0);
+    $action = $_POST['action'];
+
+    if ($license_id > 0) {
+        if ($action === 'revoke') {
+            $pdo->prepare("UPDATE licenses SET status = 'revoked' WHERE id = ?")->execute([$license_id]);
+            $success = "License revoked.";
+        }
+        elseif ($action === 'reactivate') {
+            $pdo->prepare("UPDATE licenses SET status = 'active' WHERE id = ?")->execute([$license_id]);
+            $success = "License re-activated.";
+        }
+        elseif ($action === 'delete') {
+            $pdo->prepare("UPDATE licenses SET status = 'deleted_by_admin' WHERE id = ?")->execute([$license_id]);
+            $success = "License deleted (soft).";
+        }
+        elseif ($action === 'restore') {
+            $pdo->prepare("UPDATE licenses SET status = 'active' WHERE id = ?")->execute([$license_id]);
+            $success = "License restored to active.";
+        }
+    }
+}
+
 // Pagination and Search
 $page = max(1, (int)($_GET['page'] ?? 1));
 $limit = 50;
@@ -187,6 +216,25 @@ endif; ?>
             </form>
         </header>
 
+        <?php if ($success): ?>
+        <div
+            class="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-4 rounded-xl mb-6 flex items-center relative z-10">
+            <i class="fas fa-check-circle mr-3"></i><span>
+                <?php echo htmlspecialchars($success); ?>
+            </span>
+        </div>
+        <?php
+endif; ?>
+        <?php if ($error): ?>
+        <div
+            class="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl mb-6 flex items-center relative z-10">
+            <i class="fas fa-exclamation-circle mr-3"></i><span>
+                <?php echo htmlspecialchars($error); ?>
+            </span>
+        </div>
+        <?php
+endif; ?>
+
         <!-- Table -->
         <div class="ent-glass rounded-2xl shadow-xl overflow-hidden relative z-10">
             <div class="overflow-x-auto">
@@ -200,6 +248,7 @@ endif; ?>
                             <th class="px-6 py-5">Activated Domain</th>
                             <th class="px-6 py-5">Status</th>
                             <th class="px-6 py-5">Creation Date</th>
+                            <th class="px-6 py-5 text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-800/50">
@@ -232,6 +281,9 @@ endif; ?>
     elseif ($s === 'revoked' || $s === 'banned') {
         echo '<span class="inline-flex items-center px-2.5 py-1 rounded text-[10px] uppercase font-bold border bg-red-500/10 text-red-500 border-red-500/20">Revoked</span>';
     }
+    elseif ($s === 'deleted_by_reseller') {
+        echo '<span class="inline-flex items-center px-2.5 py-1 rounded text-[10px] uppercase font-bold border bg-slate-800 text-rose-300 border-rose-500/30"><i class="fas fa-user-slash mr-1"></i> Reseller Deleted</span>';
+    }
     else {
         echo '<span class="inline-flex items-center px-2.5 py-1 rounded text-[10px] uppercase font-bold border bg-slate-800 text-slate-400 border-slate-700">' . $s . '</span>';
     }
@@ -240,13 +292,55 @@ endif; ?>
                             <td class="px-6 py-4 text-xs text-slate-500">
                                 <?php echo date('M d, Y', strtotime($c['created_at'])); ?>
                             </td>
+                            <td class="px-6 py-4 text-right">
+                                <div class="flex items-center justify-end space-x-1">
+                                    <?php if ($s === 'active'): ?>
+                                    <form method="POST" class="inline"
+                                        onsubmit="return confirm('Revoke this license?');">
+                                        <input type="hidden" name="csrf_token"
+                                            value="<?php echo $_SESSION['csrf_token']; ?>">
+                                        <input type="hidden" name="license_id" value="<?php echo $c['id']; ?>">
+                                        <input type="hidden" name="action" value="revoke">
+                                        <button type="submit"
+                                            class="p-2 text-slate-400 hover:text-amber-400 transition-colors"
+                                            title="Revoke"><i class="fas fa-ban"></i></button>
+                                    </form>
+                                    <?php
+    elseif ($s === 'revoked' || $s === 'deleted_by_reseller'): ?>
+                                    <form method="POST" class="inline"
+                                        onsubmit="return confirm('Restore this license to active?');">
+                                        <input type="hidden" name="csrf_token"
+                                            value="<?php echo $_SESSION['csrf_token']; ?>">
+                                        <input type="hidden" name="license_id" value="<?php echo $c['id']; ?>">
+                                        <input type="hidden" name="action" value="reactivate">
+                                        <button type="submit"
+                                            class="p-2 text-slate-400 hover:text-emerald-400 transition-colors"
+                                            title="Re-activate"><i class="fas fa-check-circle"></i></button>
+                                    </form>
+                                    <?php
+    endif; ?>
+                                    <?php if ($s !== 'deleted_by_admin'): ?>
+                                    <form method="POST" class="inline"
+                                        onsubmit="return confirm('Delete this license?');">
+                                        <input type="hidden" name="csrf_token"
+                                            value="<?php echo $_SESSION['csrf_token']; ?>">
+                                        <input type="hidden" name="license_id" value="<?php echo $c['id']; ?>">
+                                        <input type="hidden" name="action" value="delete">
+                                        <button type="submit"
+                                            class="p-2 text-slate-400 hover:text-red-500 transition-colors"
+                                            title="Delete"><i class="fas fa-trash-alt"></i></button>
+                                    </form>
+                                    <?php
+    endif; ?>
+                                </div>
+                            </td>
                         </tr>
                         <?php
 endforeach; ?>
 
                         <?php if (empty($customers)): ?>
                         <tr>
-                            <td colspan="6"
+                            <td colspan="7"
                                 class="text-center py-12 text-slate-500 text-sm tracking-widest uppercase font-bold"><i
                                     class="fas fa-search text-2xl mb-3 block opacity-20"></i> No Customers Found</td>
                         </tr>

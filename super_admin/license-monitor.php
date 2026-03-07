@@ -1,15 +1,41 @@
 <?php
 require_once __DIR__ . '/auth.php';
 
-// Handle Revocation Action
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'revoke') {
+$success = null;
+$error = null;
+
+// Handle CRUD Actions
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     verify_csrf();
     $id = (int)($_POST['license_id'] ?? 0);
+    $action = $_POST['action'];
 
     if ($id > 0) {
-        $stmt = $pdo->prepare("UPDATE licenses SET status = 'revoked' WHERE id = ?");
-        $stmt->execute([$id]);
-        $success = "License access has been permanently revoked.";
+        if ($action === 'revoke') {
+            $pdo->prepare("UPDATE licenses SET status = 'revoked' WHERE id = ?")->execute([$id]);
+            $success = "License revoked.";
+        }
+        elseif ($action === 'reactivate') {
+            $pdo->prepare("UPDATE licenses SET status = 'active' WHERE id = ?")->execute([$id]);
+            $success = "License re-activated.";
+        }
+        elseif ($action === 'edit') {
+            $email = trim($_POST['email'] ?? '');
+            $tier = trim($_POST['tier'] ?? 'Standard');
+            $max_domains = max(1, (int)($_POST['max_domains'] ?? 1));
+            if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $pdo->prepare("UPDATE licenses SET client_email = ?, tier = ?, max_domains = ? WHERE id = ?")
+                    ->execute([$email, $tier, $max_domains, $id]);
+                $success = "License updated.";
+            }
+            else {
+                $error = "Invalid email address.";
+            }
+        }
+        elseif ($action === 'delete') {
+            $pdo->prepare("UPDATE licenses SET status = 'deleted_by_admin' WHERE id = ?")->execute([$id]);
+            $success = "License deleted (soft).";
+        }
     }
 }
 
@@ -209,7 +235,8 @@ function parse_active_domain($json)
                     class="bg-slate-950/50 border border-slate-700/50 rounded-lg px-4 py-2.5 text-sm text-slate-300 focus:border-rose-500 focus:outline-none transition-all appearance-none cursor-pointer">
                     <option value="">All Types</option>
                     <option value="standard" <?php if ($filter_type==='standard' )
-    echo 'selected' ; ?>>Standard (Direct)
+    echo 'selected' ; ?>>Standard
+                        (Direct)
                     </option>
                     <option value="reseller_generated" <?php if ($filter_type==='reseller_generated' )
     echo 'selected' ;
@@ -221,10 +248,10 @@ function parse_active_domain($json)
                         class="flex-1 bg-slate-950/50 border border-slate-700/50 rounded-lg px-4 py-2.5 text-sm text-slate-300 focus:border-rose-500 focus:outline-none transition-all appearance-none cursor-pointer">
                         <option value="">All Statuses</option>
                         <option value="active" <?php if ($filter_status==='active' )
-    echo 'selected' ; ?>>Active</option>
+    echo 'selected' ; ?>>Active
+                        </option>
                         <option value="pending_activation" <?php if ($filter_status==='pending_activation' )
-
-                               echo 'selected' ; ?>>Pending</option>
+                            echo 'selected' ; ?>>Pending</option>
                         <option value="revoked" <?php if ($filter_status==='revoked' )
     echo 'selected' ; ?>>Revoked
                         </option>
@@ -241,12 +268,22 @@ endif; ?>
             </form>
         </header>
 
-        <?php if (isset($success)): ?>
+        <?php if ($success): ?>
         <div
-            class="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-4 rounded-xl mb-8 flex items-center relative z-10">
+            class="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-4 rounded-xl mb-6 flex items-center relative z-10">
             <i class="fas fa-check-circle mr-3 text-lg"></i>
             <span>
                 <?php echo htmlspecialchars($success); ?>
+            </span>
+        </div>
+        <?php
+endif; ?>
+        <?php if ($error): ?>
+        <div
+            class="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl mb-6 flex items-center relative z-10">
+            <i class="fas fa-exclamation-circle mr-3 text-lg"></i>
+            <span>
+                <?php echo htmlspecialchars($error); ?>
             </span>
         </div>
         <?php
@@ -314,24 +351,55 @@ endif; ?>
 ?>
                             </td>
                             <td class="px-6 py-4 text-right">
-                                <?php if ($s !== 'revoked' && $s !== 'banned'): ?>
-                                <form method="POST" class="inline"
-                                    onsubmit="return confirm('CRITICAL: Revoking this license will immediately shut down the associated BioScript installation. This action is permanent. Proceed?');">
-                                    <input type="hidden" name="csrf_token"
-                                        value="<?php echo $_SESSION['csrf_token']; ?>">
-                                    <input type="hidden" name="action" value="revoke">
-                                    <input type="hidden" name="license_id" value="<?php echo $l['id']; ?>">
-                                    <button type="submit"
-                                        class="p-2 text-slate-500 hover:text-red-500 transition-colors"
-                                        title="Revoke Access">
-                                        <i class="fas fa-power-off"></i>
+                                <div class="flex items-center justify-end space-x-1">
+                                    <button
+                                        onclick="openLicEditModal(<?php echo $l['id']; ?>, '<?php echo htmlspecialchars($l['client_email'], ENT_QUOTES); ?>', '<?php echo htmlspecialchars($l['tier'] ?? 'Standard', ENT_QUOTES); ?>', <?php echo (int)($l['max_domains'] ?? 1); ?>)"
+                                        class="p-2 text-slate-500 hover:text-amber-400 transition-colors"
+                                        title="Edit License">
+                                        <i class="fas fa-edit"></i>
                                     </button>
-                                </form>
-                                <?php
-    else: ?>
-                                <span class="text-slate-600 text-xs italic">Terminated</span>
-                                <?php
+                                    <?php if ($s === 'active' || $s === 'pending_activation'): ?>
+                                    <form method="POST" class="inline"
+                                        onsubmit="return confirm('Revoke this license?');">
+                                        <input type="hidden" name="csrf_token"
+                                            value="<?php echo $_SESSION['csrf_token']; ?>">
+                                        <input type="hidden" name="action" value="revoke">
+                                        <input type="hidden" name="license_id" value="<?php echo $l['id']; ?>">
+                                        <button type="submit"
+                                            class="p-2 text-slate-500 hover:text-red-500 transition-colors"
+                                            title="Revoke">
+                                            <i class="fas fa-power-off"></i>
+                                        </button>
+                                    </form>
+                                    <?php
+    elseif ($s === 'revoked' || $s === 'banned'): ?>
+                                    <form method="POST" class="inline"
+                                        onsubmit="return confirm('Re-activate this license?');">
+                                        <input type="hidden" name="csrf_token"
+                                            value="<?php echo $_SESSION['csrf_token']; ?>">
+                                        <input type="hidden" name="action" value="reactivate">
+                                        <input type="hidden" name="license_id" value="<?php echo $l['id']; ?>">
+                                        <button type="submit"
+                                            class="p-2 text-slate-500 hover:text-emerald-400 transition-colors"
+                                            title="Re-activate">
+                                            <i class="fas fa-check-circle"></i>
+                                        </button>
+                                    </form>
+                                    <?php
     endif; ?>
+                                    <form method="POST" class="inline"
+                                        onsubmit="return confirm('Delete this license?');">
+                                        <input type="hidden" name="csrf_token"
+                                            value="<?php echo $_SESSION['csrf_token']; ?>">
+                                        <input type="hidden" name="action" value="delete">
+                                        <input type="hidden" name="license_id" value="<?php echo $l['id']; ?>">
+                                        <button type="submit"
+                                            class="p-2 text-slate-500 hover:text-red-500 transition-colors"
+                                            title="Delete">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                         <?php
@@ -381,6 +449,57 @@ endif; ?>
 endif; ?>
         </div>
     </main>
+
+    <!-- Edit License Modal -->
+    <div id="licEditModal"
+        class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl p-8 w-full max-w-md shadow-2xl">
+            <h3 class="text-xl font-bold text-white mb-6"><i class="fas fa-edit text-amber-500 mr-2"></i>Edit License
+            </h3>
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+                <input type="hidden" name="action" value="edit">
+                <input type="hidden" name="license_id" id="licEditId">
+                <div class="mb-4">
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Client
+                        Email</label>
+                    <input type="email" name="email" id="licEditEmail" required
+                        class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-4 py-3 focus:border-amber-500 focus:outline-none text-sm">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Tier</label>
+                    <select name="tier" id="licEditTier"
+                        class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-4 py-3 focus:border-amber-500 focus:outline-none text-sm">
+                        <option value="Standard">Standard</option>
+                        <option value="Agency">Agency</option>
+                        <option value="Enterprise">Enterprise</option>
+                    </select>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Max
+                        Domains</label>
+                    <input type="number" name="max_domains" id="licEditMaxDomains" min="1" required
+                        class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-4 py-3 focus:border-amber-500 focus:outline-none text-sm">
+                </div>
+                <div class="flex space-x-3">
+                    <button type="submit"
+                        class="flex-1 bg-gradient-to-r from-amber-600 to-amber-700 text-white font-bold py-3 rounded-lg text-sm uppercase tracking-widest">Update</button>
+                    <button type="button" onclick="document.getElementById('licEditModal').classList.add('hidden')"
+                        class="flex-1 bg-slate-800 text-slate-400 font-bold py-3 rounded-lg text-sm uppercase tracking-widest border border-slate-700 hover:text-white">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openLicEditModal(id, email, tier, maxDomains) {
+            document.getElementById('licEditId').value = id;
+            document.getElementById('licEditEmail').value = email;
+            document.getElementById('licEditTier').value = tier;
+            document.getElementById('licEditMaxDomains').value = maxDomains;
+            document.getElementById('licEditModal').classList.remove('hidden');
+        }
+    </script>
 </body>
 
 </html>

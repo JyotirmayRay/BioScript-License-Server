@@ -1,37 +1,97 @@
 <?php
 require_once __DIR__ . '/auth.php';
 
-// Handle Actions (Suspend/Activate)
+$success = null;
+$error = null;
+
+// Handle Actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     verify_csrf();
-    $id = (int)($_POST['reseller_id'] ?? 0);
     $action = $_POST['action'];
 
-    if ($id > 0) {
-        if ($action === 'suspend') {
-            $stmt = $pdo->prepare("UPDATE resellers SET status = 'suspended' WHERE id = ?");
-            $stmt->execute([$id]);
-            $success = "Reseller suspended successfully.";
+    if ($action === 'suspend' || $action === 'activate') {
+        $id = (int)($_POST['reseller_id'] ?? 0);
+        if ($id > 0) {
+            $new_status = ($action === 'suspend') ? 'suspended' : 'active';
+            $pdo->prepare("UPDATE resellers SET status = ? WHERE id = ?")->execute([$new_status, $id]);
+            $success = "Reseller " . ($action === 'suspend' ? 'suspended' : 'activated') . " successfully.";
         }
-        elseif ($action === 'activate') {
-            $stmt = $pdo->prepare("UPDATE resellers SET status = 'active' WHERE id = ?");
-            $stmt->execute([$id]);
-            $success = "Reseller activated successfully.";
+    }
+    elseif ($action === 'create') {
+        $email = trim($_POST['email'] ?? '');
+        $password = trim($_POST['password'] ?? '');
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $error = "Invalid email address.";
+        }
+        elseif (strlen($password) < 8) {
+            $error = "Password must be at least 8 characters.";
+        }
+        else {
+            // Check duplicate
+            $stmt = $pdo->prepare("SELECT id FROM resellers WHERE email = ?");
+            $stmt->execute([$email]);
+            if ($stmt->fetch()) {
+                $error = "A reseller with this email already exists.";
+            }
+            else {
+                // Generate RES-XXXX-XXXX-XXXX key
+                $chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+                $segments = [];
+                for ($i = 0; $i < 3; $i++) {
+                    $s = '';
+                    for ($j = 0; $j < 4; $j++)
+                        $s .= $chars[random_int(0, strlen($chars) - 1)];
+                    $segments[] = $s;
+                }
+                $reseller_key = 'RES-' . implode('-', $segments);
+                $hash = password_hash($password, PASSWORD_DEFAULT);
+
+                $pdo->prepare("INSERT INTO resellers (email, password_hash, license_key, status) VALUES (?, ?, ?, 'active')")
+                    ->execute([$email, $hash, $reseller_key]);
+                $success = "Reseller created: $email | Key: $reseller_key";
+            }
+        }
+    }
+    elseif ($action === 'edit') {
+        $id = (int)($_POST['reseller_id'] ?? 0);
+        $email = trim($_POST['email'] ?? '');
+        $new_password = trim($_POST['new_password'] ?? '');
+
+        if ($id > 0 && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $pdo->prepare("UPDATE resellers SET email = ? WHERE id = ?")->execute([$email, $id]);
+            if (!empty($new_password) && strlen($new_password) >= 8) {
+                $hash = password_hash($new_password, PASSWORD_DEFAULT);
+                $pdo->prepare("UPDATE resellers SET password_hash = ? WHERE id = ?")->execute([$hash, $id]);
+            }
+            $success = "Reseller updated successfully.";
+        }
+        else {
+            $error = "Invalid reseller ID or email.";
+        }
+    }
+    elseif ($action === 'delete') {
+        $id = (int)($_POST['reseller_id'] ?? 0);
+        if ($id > 0) {
+            $pdo->prepare("UPDATE resellers SET status = 'deleted' WHERE id = ?")->execute([$id]);
+            $success = "Reseller deleted (soft). Login blocked.";
         }
     }
 }
 
-// Fetch Resellers and their aggregate metrics
-// SQLite doesn't have a direct count join as efficiently as MySQL, so we use subqueries for safety
+// Fetch Resellers with aggregate metrics including deleted_by_reseller count
 $query = "
     SELECT r.*,
            (SELECT COUNT(*) FROM licenses WHERE reseller_id = r.id) as total_licenses_generated,
-           (SELECT COUNT(*) FROM licenses WHERE reseller_id = r.id AND status = 'active') as active_licenses
+           (SELECT COUNT(*) FROM licenses WHERE reseller_id = r.id AND status = 'active') as active_licenses,
+           (SELECT COUNT(*) FROM licenses WHERE reseller_id = r.id AND status = 'deleted_by_reseller') as deleted_by_reseller_count
     FROM resellers r
+    WHERE r.status != 'deleted'
     ORDER BY r.created_at DESC
 ";
 $stmt = $pdo->query($query);
 $resellers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
 
 ?>
 <!DOCTYPE html>
@@ -146,14 +206,29 @@ $resellers = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <h2 class="text-3xl font-bold text-white mb-2 tracking-tight">Resellers Management</h2>
                 <p class="text-slate-400">View and manage authorized BioScript resellers.</p>
             </div>
+            <button onclick="document.getElementById('createModal').classList.remove('hidden')"
+                class="bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white font-bold py-3 px-6 rounded-xl transition-all flex items-center space-x-2 text-xs uppercase tracking-widest border border-rose-500/30">
+                <i class="fas fa-plus"></i>
+                <span>Create Reseller</span>
+            </button>
         </header>
 
-        <?php if (isset($success)): ?>
+        <?php if ($success): ?>
         <div
-            class="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-4 rounded-xl mb-8 flex items-center relative z-10">
+            class="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-4 rounded-xl mb-6 flex items-center relative z-10">
             <i class="fas fa-check-circle mr-3 text-lg"></i>
             <span>
                 <?php echo htmlspecialchars($success); ?>
+            </span>
+        </div>
+        <?php
+endif; ?>
+        <?php if ($error): ?>
+        <div
+            class="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl mb-6 flex items-center relative z-10">
+            <i class="fas fa-exclamation-circle mr-3 text-lg"></i>
+            <span>
+                <?php echo htmlspecialchars($error); ?>
             </span>
         </div>
         <?php
@@ -209,6 +284,13 @@ endif; ?>
                                         <i class="fas fa-eye"></i>
                                     </a>
 
+                                    <button
+                                        onclick="openEditModal(<?php echo $r['id']; ?>, '<?php echo htmlspecialchars($r['email'], ENT_QUOTES); ?>')"
+                                        class="p-2 text-slate-400 hover:text-amber-400 transition-colors"
+                                        title="Edit Reseller">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+
                                     <form method="POST" class="inline"
                                         onsubmit="return confirm('Change reseller access status?');">
                                         <input type="hidden" name="csrf_token"
@@ -233,6 +315,19 @@ endif; ?>
                                         <?php
     endif; ?>
                                     </form>
+
+                                    <form method="POST" class="inline"
+                                        onsubmit="return confirm('Delete this reseller? Their login will be blocked.');">
+                                        <input type="hidden" name="csrf_token"
+                                            value="<?php echo $_SESSION['csrf_token']; ?>">
+                                        <input type="hidden" name="reseller_id" value="<?php echo $r['id']; ?>">
+                                        <input type="hidden" name="action" value="delete">
+                                        <button type="submit"
+                                            class="p-2 text-slate-400 hover:text-red-500 transition-colors"
+                                            title="Delete Reseller">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </form>
                                 </div>
                             </td>
                         </tr>
@@ -253,6 +348,75 @@ endif; ?>
             </div>
         </div>
     </main>
+
+    <!-- Create Reseller Modal -->
+    <div id="createModal"
+        class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl p-8 w-full max-w-md shadow-2xl">
+            <h3 class="text-xl font-bold text-white mb-6"><i class="fas fa-user-plus text-rose-500 mr-2"></i>Create
+                Reseller</h3>
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+                <input type="hidden" name="action" value="create">
+                <div class="mb-4">
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Email</label>
+                    <input type="email" name="email" required
+                        class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-4 py-3 focus:border-rose-500 focus:outline-none text-sm">
+                </div>
+                <div class="mb-6">
+                    <label
+                        class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Password</label>
+                    <input type="password" name="password" required minlength="8"
+                        class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-4 py-3 focus:border-rose-500 focus:outline-none text-sm"
+                        placeholder="Min 8 characters">
+                </div>
+                <div class="flex space-x-3">
+                    <button type="submit"
+                        class="flex-1 bg-gradient-to-r from-rose-600 to-rose-700 text-white font-bold py-3 rounded-lg text-sm uppercase tracking-widest">Create</button>
+                    <button type="button" onclick="document.getElementById('createModal').classList.add('hidden')"
+                        class="flex-1 bg-slate-800 text-slate-400 font-bold py-3 rounded-lg text-sm uppercase tracking-widest border border-slate-700 hover:text-white">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Reseller Modal -->
+    <div id="editModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl p-8 w-full max-w-md shadow-2xl">
+            <h3 class="text-xl font-bold text-white mb-6"><i class="fas fa-edit text-amber-500 mr-2"></i>Edit Reseller
+            </h3>
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+                <input type="hidden" name="action" value="edit">
+                <input type="hidden" name="reseller_id" id="editId">
+                <div class="mb-4">
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Email</label>
+                    <input type="email" name="email" id="editEmail" required
+                        class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-4 py-3 focus:border-amber-500 focus:outline-none text-sm">
+                </div>
+                <div class="mb-6">
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">New Password
+                        <span class="text-slate-600">(leave blank to keep current)</span></label>
+                    <input type="password" name="new_password" minlength="8"
+                        class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-4 py-3 focus:border-amber-500 focus:outline-none text-sm">
+                </div>
+                <div class="flex space-x-3">
+                    <button type="submit"
+                        class="flex-1 bg-gradient-to-r from-amber-600 to-amber-700 text-white font-bold py-3 rounded-lg text-sm uppercase tracking-widest">Update</button>
+                    <button type="button" onclick="document.getElementById('editModal').classList.add('hidden')"
+                        class="flex-1 bg-slate-800 text-slate-400 font-bold py-3 rounded-lg text-sm uppercase tracking-widest border border-slate-700 hover:text-white">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openEditModal(id, email) {
+            document.getElementById('editId').value = id;
+            document.getElementById('editEmail').value = email;
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+    </script>
 </body>
 
 </html>

@@ -72,34 +72,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upgrade_tier'])) {
     exit;
 }
 
-// Toggle Status (Ban/Unban)
-if (isset($_GET['action']) && $_GET['action'] === 'toggle_status' && isset($_GET['id'])) {
-    // Note: GET actions are harder to CSRF protect without a token in URL. 
-    // For strict security, these should be POSTs. 
-    // However, for this dashboard, we'll verify a token passed in GET or just proceed if we assume Admin-only access is safe enough for now.
-    // Let's add a token check to GET for safety.
-    if (!isset($_GET['token']) || $_GET['token'] !== $_SESSION['csrf_token']) {
-        die('Invalid Security Token');
-    }
-
-    $id = $_GET['id'];
-    $current = $_GET['current'];
+// Toggle Status (Ban/Unban) — converted from GET to POST for security
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_status'])) {
+    verify_csrf();
+    $id = (int)$_POST['id'];
+    $current = $_POST['current'] ?? 'active';
     $new_status = ($current === 'active') ? 'banned' : 'active';
-    
-    $stmt = $pdo->prepare("UPDATE licenses SET status = :status WHERE id = :id");
-    $stmt->execute([':status' => $new_status, ':id' => $id]);
+    $pdo->prepare("UPDATE licenses SET status = :status WHERE id = :id")
+        ->execute([':status' => $new_status, ':id' => $id]);
     header('Location: dashboard.php');
     exit;
 }
 
-// Reset Domains
-if (isset($_GET['action']) && $_GET['action'] === 'reset_domains' && isset($_GET['id'])) {
-    if (!isset($_GET['token']) || $_GET['token'] !== $_SESSION['csrf_token']) {
-        die('Invalid Security Token');
-    }
-    $stmt = $pdo->prepare("UPDATE licenses SET registered_domains = '[]' WHERE id = :id");
-    $stmt->execute([':id' => $_GET['id']]);
+// Reset Domains — converted from GET to POST for security
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reset_domains'])) {
+    verify_csrf();
+    $pdo->prepare("UPDATE licenses SET registered_domains = '[]' WHERE id = :id")
+        ->execute([':id' => (int)$_POST['id']]);
     header('Location: dashboard.php?msg=domains_reset');
+    exit;
+}
+
+// Edit License — new
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_license'])) {
+    verify_csrf();
+    $id = (int)$_POST['id'];
+    $email = trim($_POST['email'] ?? '');
+    $tier = $_POST['tier'] ?? 'Standard';
+    $max_domains = max(1, (int)($_POST['max_domains'] ?? 1));
+
+    if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        if ($tier === 'Agency') $max_domains = max($max_domains, 10);
+        if ($tier === 'Enterprise') $max_domains = max($max_domains, 999);
+        $pdo->prepare("UPDATE licenses SET client_email = ?, tier = ?, max_domains = ? WHERE id = ?")
+            ->execute([$email, $tier, $max_domains, $id]);
+        $_SESSION['ls_success'] = "License updated.";
+    } else {
+        $_SESSION['ls_error'] = "Invalid email address.";
+    }
+    header('Location: dashboard.php');
+    exit;
+}
+
+// Delete License — new (soft)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_license'])) {
+    verify_csrf();
+    $id = (int)$_POST['id'];
+    $pdo->prepare("UPDATE licenses SET status = 'deleted' WHERE id = ?")->execute([$id]);
+    $_SESSION['ls_success'] = "License deleted (soft).";
+    header('Location: dashboard.php');
     exit;
 }
 
@@ -128,17 +149,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_domains'])) {
     $stmt = $pdo->prepare("UPDATE licenses SET registered_domains = :domains WHERE id = :id");
     $stmt->execute([':domains' => $json, ':id' => $id]);
     header('Location: dashboard.php?msg=domains_updated');
-    exit;
-}
-
-// Delete
-if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id'])) {
-    if (!isset($_GET['token']) || $_GET['token'] !== $_SESSION['csrf_token']) {
-        die('Invalid Security Token');
-    }
-    $stmt = $pdo->prepare("DELETE FROM licenses WHERE id = :id");
-    $stmt->execute([':id' => $_GET['id']]);
-    header('Location: dashboard.php?msg=deleted');
     exit;
 }
 
@@ -458,17 +468,24 @@ unset($_SESSION['ls_success'], $_SESSION['ls_error']);
         </div>
 
         <!-- Header -->
-        <header class="flex justify-between items-end mb-10 relative z-10">
-            <div>
-                <h2 class="text-3xl font-bold text-white mb-2 tracking-tight">License CRM</h2>
-                <p class="text-slate-400">Manage client licenses, tiers, and domain allocations.</p>
-            </div>
-            <button @click="generateModalOpen = true"
-                class="bg-primary-600 hover:bg-primary-500 text-white font-bold py-3 px-6 rounded-xl shadow-lg shadow-primary-600/20 transition-all flex items-center space-x-2">
-                <i class="fas fa-plus"></i>
-                <span>Generate New License</span>
-            </button>
         </header>
+
+        <?php if (isset($_SESSION['ls_success'])): ?>
+        <div
+            class="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-4 rounded-xl mb-6 flex items-center relative z-10">
+            <i class="fas fa-check-circle mr-3"></i><span>
+                <?php echo htmlspecialchars($_SESSION['ls_success']); ?>
+            </span>
+        </div>
+        <?php unset($_SESSION['ls_success']); endif; ?>
+        <?php if (isset($_SESSION['ls_error'])): ?>
+        <div
+            class="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl mb-6 flex items-center relative z-10">
+            <i class="fas fa-exclamation-circle mr-3"></i><span>
+                <?php echo htmlspecialchars($_SESSION['ls_error']); ?>
+            </span>
+        </div>
+        <?php unset($_SESSION['ls_error']); endif; ?>
 
         <!-- Stats Grid -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10 relative z-10">
@@ -789,53 +806,54 @@ unset($_SESSION['ls_success'], $_SESSION['ls_error']);
                                     <div x-show="open" style="display: none;"
                                         class="absolute right-0 mt-2 w-48 bg-slate-900 border border-slate-700 rounded-xl shadow-xl z-50 overflow-hidden"
                                         x-transition.origin.top.right>
-                                        <a href="?action=toggle_status&id=<?php echo $lic['id']; ?>&current=<?php echo $lic['status']; ?>&token=<?php echo $_SESSION['csrf_token']; ?>"
-                                            class="block px-4 py-3 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-colors border-b border-slate-800">
-                                            <?php echo $lic['status'] === 'active' ? '<i class="fas fa-ban w-5 text-red-400"></i> Ban License' : '<i class="fas fa-check w-5 text-emerald-400"></i> Activate'; ?>
-                                        </a>
+                                        <!-- Toggle Status (POST) -->
+                                        <form method="POST" class="block">
+                                            <input type="hidden" name="csrf_token"
+                                                value="<?php echo $_SESSION['csrf_token']; ?>">
+                                            <input type="hidden" name="toggle_status" value="1">
+                                            <input type="hidden" name="id" value="<?php echo $lic['id']; ?>">
+                                            <input type="hidden" name="current" value="<?php echo $lic['status']; ?>">
+                                            <button type="submit"
+                                                class="w-full text-left px-4 py-3 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-colors border-b border-slate-800">
+                                                <?php echo $lic['status'] === 'active' ? '<i class="fas fa-ban w-5 text-red-400"></i> Ban License' : '<i class="fas fa-check w-5 text-emerald-400"></i> Activate'; ?>
+                                            </button>
+                                        </form>
+                                        <!-- Upgrade Tier -->
                                         <button
                                             @click="selectedLicense = <?php echo htmlspecialchars(json_encode($lic)); ?>; upgradeModalOpen = true; open = false"
                                             class="w-full text-left px-4 py-3 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-colors border-b border-slate-800">
                                             <i class="fas fa-arrow-circle-up w-5 text-purple-400"></i> Upgrade Tier
                                         </button>
-                                        <a href="?action=reset_domains&id=<?php echo $lic['id']; ?>&token=<?php echo $_SESSION['csrf_token']; ?>"
-                                            @click.prevent="Swal.fire({
-                                               title: 'Reset Domains?',
-                                               text: 'Client can then activate on new sites.',
-                                               icon: 'warning',
-                                               showCancelButton: true,
-                                               confirmButtonColor: '#3b82f6',
-                                               cancelButtonColor: '#334155',
-                                               confirmButtonText: 'Yes, reset them',
-                                               background: '#1e293b',
-                                               color: '#fff'
-                                           }).then((result) => {
-                                               if (result.isConfirmed) {
-                                                   window.location.href = $el.href;
-                                               }
-                                           })"
-                                            class="block px-4 py-3 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-colors border-b border-slate-800">
-                                            <i class="fas fa-sync w-5 text-blue-400"></i> Reset Domains
-                                        </a>
-                                        <a href="?action=delete&id=<?php echo $lic['id']; ?>&token=<?php echo $_SESSION['csrf_token']; ?>"
-                                            @click.prevent="Swal.fire({
-                                               title: 'Permanently Delete?',
-                                               text: 'This action cannot be undone.',
-                                               icon: 'warning',
-                                               showCancelButton: true,
-                                               confirmButtonColor: '#ef4444',
-                                               cancelButtonColor: '#334155',
-                                               confirmButtonText: 'Yes, delete it',
-                                               background: '#1e293b',
-                                               color: '#fff'
-                                           }).then((result) => {
-                                               if (result.isConfirmed) {
-                                                   window.location.href = $el.href;
-                                               }
-                                           })"
-                                            class="block px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors">
-                                            <i class="fas fa-trash w-5"></i> Delete
-                                        </a>
+                                        <!-- Edit License -->
+                                        <button
+                                            @click="openDashEditModal(<?php echo $lic['id']; ?>, '<?php echo htmlspecialchars($lic['client_email'], ENT_QUOTES); ?>', '<?php echo htmlspecialchars($lic['tier'] ?? 'Standard', ENT_QUOTES); ?>', <?php echo (int)($lic['max_domains'] ?? 1); ?>); open = false"
+                                            class="w-full text-left px-4 py-3 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-colors border-b border-slate-800">
+                                            <i class="fas fa-edit w-5 text-amber-400"></i> Edit License
+                                        </button>
+                                        <!-- Reset Domains (POST) -->
+                                        <form method="POST" class="block"
+                                            onsubmit="return confirm('Reset domains? Client can then activate on new sites.');">
+                                            <input type="hidden" name="csrf_token"
+                                                value="<?php echo $_SESSION['csrf_token']; ?>">
+                                            <input type="hidden" name="reset_domains" value="1">
+                                            <input type="hidden" name="id" value="<?php echo $lic['id']; ?>">
+                                            <button type="submit"
+                                                class="w-full text-left px-4 py-3 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-colors border-b border-slate-800">
+                                                <i class="fas fa-sync w-5 text-blue-400"></i> Reset Domains
+                                            </button>
+                                        </form>
+                                        <!-- Delete License (POST) -->
+                                        <form method="POST" class="block"
+                                            onsubmit="return confirm('Delete this license?');">
+                                            <input type="hidden" name="csrf_token"
+                                                value="<?php echo $_SESSION['csrf_token']; ?>">
+                                            <input type="hidden" name="delete_license" value="1">
+                                            <input type="hidden" name="id" value="<?php echo $lic['id']; ?>">
+                                            <button type="submit"
+                                                class="w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors">
+                                                <i class="fas fa-trash w-5"></i> Delete
+                                            </button>
+                                        </form>
                                     </div>
                                 </div>
                             </td>
@@ -1065,17 +1083,85 @@ unset($_SESSION['ls_success'], $_SESSION['ls_error']);
                         <span>Save Lockdown Configuration</span>
                     </button>
                 </form>
-                <a :href="'?action=reset_domains&id=' + (selectedLicense ? selectedLicense.id : '') + '&token=<?php echo $_SESSION['csrf_token']; ?>'"
-                    @click.prevent="if(confirm('DANGER: This will wipe ALL authorized domains for this license. Continue?')) window.location.href=$el.href"
-                    class="w-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white text-[10px] font-black uppercase tracking-widest py-3 rounded flex items-center justify-center space-x-2 transition-colors">
-                    <i class="fas fa-trash-alt opacity-50"></i>
-                    <span>Wipe All Bindings</span>
-                </a>
+                <form method="POST">
+                    <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+                    <input type="hidden" name="reset_domains" value="1">
+                    <input type="hidden" name="id" :value="selectedLicense ? selectedLicense.id : ''">
+                    <button type="submit"
+                        onclick="return confirm('DANGER: This will wipe ALL authorized domains for this license. Continue?')"
+                        class="w-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white text-[10px] font-black uppercase tracking-widest py-3 rounded flex items-center justify-center space-x-2 transition-colors">
+                        <i class="fas fa-trash-alt opacity-50"></i>
+                        <span>Wipe All Bindings</span>
+                    </button>
+                </form>
             </div>
         </div>
     </div>
     </main>
 
+    <!-- DASHBOARD EDIT MODAL (New) -->
+    <div x-data="{ open: false, id: '', email: '', tier: 'Standard', max: 1 }" x-show="open"
+        @open-dash-edit.window="open = true; id = $event.detail.id; email = $event.detail.email; tier = $event.detail.tier; max = $event.detail.max"
+        style="display: none;" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 p-4">
+        <div class="ent-glass w-full max-w-md rounded-xl overflow-hidden shadow-2xl border border-slate-700/50"
+            @click.away="open = false">
+            <div class="p-6 border-b border-slate-700/50 flex justify-between items-center bg-slate-900/50">
+                <div class="flex items-center space-x-3">
+                    <i class="fas fa-edit text-amber-500"></i>
+                    <h3 class="text-sm font-black text-white uppercase tracking-widest">Edit Architecture</h3>
+                </div>
+                <button @click="open = false" class="text-slate-500 hover:text-white transition-colors">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-8">
+                <form method="POST">
+                    <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+                    <input type="hidden" name="edit_license" value="1">
+                    <input type="hidden" name="id" :value="id">
+                    <div class="mb-5">
+                        <label
+                            class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 text-left">Client
+                            Email Identity</label>
+                        <input type="email" name="email" :value="email" @input="email = $event.target.value" required
+                            class="ent-input w-full rounded-lg px-4 py-3 text-sm focus:border-amber-500/50 transition-all">
+                    </div>
+                    <div class="mb-5">
+                        <label
+                            class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 text-left">Asset
+                            Tier</label>
+                        <select name="tier" x-model="tier"
+                            class="ent-input w-full rounded-lg px-4 py-3 text-sm focus:border-amber-500/50 transition-all appearance-none cursor-pointer">
+                            <option value="Standard">Standard Node</option>
+                            <option value="Agency">Agency Cluster</option>
+                            <option value="Enterprise">Enterprise Network</option>
+                        </select>
+                    </div>
+                    <div class="mb-8">
+                        <label
+                            class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 text-left">Domain
+                            Capacity</label>
+                        <input type="number" name="max_domains" :value="max" @input="max = $event.target.value" min="1"
+                            required
+                            class="ent-input w-full rounded-lg px-4 py-3 text-sm focus:border-amber-500/50 transition-all">
+                    </div>
+                    <button type="submit"
+                        class="bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white font-black uppercase tracking-widest py-4 rounded-xl w-full shadow-lg shadow-amber-900/20 transition-all flex items-center justify-center space-x-2">
+                        <i class="fas fa-save opacity-50"></i>
+                        <span>Sync Configuration</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    function openDashEditModal(id, email, tier, max) {
+        window.dispatchEvent(new CustomEvent('open-dash-edit', { 
+            detail: { id, email, tier, max } 
+        }));
+    }
+    </script>
 </body>
 
 </html>
