@@ -163,13 +163,20 @@ if (!$valid_product) {
     exit;
 }
 
-// License Generation Logic
+// License Generation Logic — MUST produce BIO-XXXX-XXXX-XXXX (3 segments)
+// to match the activation API regex: /^BIO-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/
 function generateLicense()
 {
-    return 'BIO-' .
-        strtoupper(substr(bin2hex(random_bytes(4)), 0, 4)) .
-        '-' .
-        strtoupper(substr(bin2hex(random_bytes(4)), 0, 4));
+    $chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    $segments = [];
+    for ($i = 0; $i < 3; $i++) {
+        $seg = '';
+        for ($j = 0; $j < 4; $j++) {
+            $seg .= $chars[random_int(0, strlen($chars) - 1)];
+        }
+        $segments[] = $seg;
+    }
+    return 'BIO-' . implode('-', $segments);
 }
 
 // 8. Database Operations (db.php already loaded above)

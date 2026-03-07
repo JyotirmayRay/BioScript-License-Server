@@ -16,16 +16,27 @@ if (empty($_SESSION['reseller_csrf'])) {
     $_SESSION['reseller_csrf'] = bin2hex(random_bytes(32));
 }
 
-// --- RE-VERIFY RESELLER STATUS (anti-suspension bypass) ---
-$stmt = $pdo->prepare("SELECT status FROM resellers WHERE id = ? LIMIT 1");
+// --- RE-VERIFY RESELLER STATUS + KEY (anti-suspension bypass + anti-hijack) ---
+$stmt = $pdo->prepare("SELECT status, license_key FROM resellers WHERE id = ? LIMIT 1");
 $stmt->execute([$reseller_id]);
 $current_reseller = $stmt->fetch();
 
 if (!$current_reseller || $current_reseller['status'] !== 'active') {
-    // Force logout — account was suspended since last page load
     session_unset();
     session_destroy();
     header('Location: login.php?msg=' . urlencode('Your account has been suspended.'));
+    exit;
+}
+
+// Verify reseller_key matches session (anti-session-hijack)
+$session_key = $_SESSION['reseller_key'] ?? '';
+if (!empty($current_reseller['license_key']) && $session_key !== $current_reseller['license_key']) {
+    ResellerLogger::log($pdo, 'key_mismatch', "Session key mismatch for Reseller: $reseller_id | Session: $session_key | DB: " . $current_reseller['license_key'], [
+        'ip' => $client_ip, 'reseller_id' => $reseller_id
+    ]);
+    session_unset();
+    session_destroy();
+    header('Location: login.php?msg=' . urlencode('Session verification failed. Please log in again.'));
     exit;
 }
 
