@@ -59,11 +59,11 @@ try {
 
     $client_ip = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? 'Unknown';
 
-    // --- RATE LIMITING (10 per minute per IP) ---
+    // --- RATE LIMITING (30 per minute per IP to support 15s Heartbeats) ---
     $pdo->prepare("DELETE FROM api_rate_limits WHERE attempt_time < datetime('now', '-1 minute')")->execute();
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM api_rate_limits WHERE ip = ?");
     $stmt->execute([$client_ip]);
-    if ($stmt->fetchColumn() >= 10) {
+    if ($stmt->fetchColumn() >= 30) {
         send_json_error('Rate limit exceeded. Try again later.', 'error', 'rate_limit_exceeded');
     }
     $pdo->prepare("INSERT INTO api_rate_limits (ip) VALUES (?)")->execute([$client_ip]);
