@@ -29,9 +29,10 @@ class EmailService
     }
 
     /**
-     * Private helper: creates a fully configured PHPMailer instance.
+     * Public helper: creates a fully configured PHPMailer instance.
+     * Used by EmailService methods internally and by external callers for custom templates.
      */
-    private static function createMailer(PDO $pdo, string $to_email): \PHPMailer\PHPMailer\PHPMailer
+    public static function createMailer(PDO $pdo, string $to_email): \PHPMailer\PHPMailer\PHPMailer
     {
         $stmt = $pdo->query("SELECT * FROM settings WHERE id = 1 LIMIT 1");
         $settings = $stmt->fetch();

@@ -1,15 +1,30 @@
 <?php
 // /reseller/login.php
+// Set secure cookie parameters BEFORE session_start
+$cookieParams = session_get_cookie_params();
+session_set_cookie_params([
+    'lifetime' => 86400,
+    'path' => '/',
+    'domain' => $cookieParams['domain'],
+    'secure' => isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on',
+    'httponly' => true,
+    'samesite' => 'Strict'
+]);
+
 if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
+
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/ResellerLogger.php';
 
 // Redirect if already logged in
 if (isset($_SESSION['reseller_logged_in']) && $_SESSION['reseller_logged_in'] === true) {
     header('Location: dashboard.php');
     exit;
 }
+
+$client_ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     $email = trim($_POST['email'] ?? '');
@@ -19,29 +34,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
         $error = "Please enter both email and password.";
     }
     else {
-        // Find reseller by email
-        $stmt = $pdo->prepare("SELECT id, email, password_hash, status FROM resellers WHERE email = ?");
-        $stmt->execute([$email]);
-        $reseller = $stmt->fetch();
-
-        if ($reseller && password_verify($password, $reseller['password_hash'])) {
-            if ($reseller['status'] !== 'active') {
-                $error = "This reseller account is suspended. Please contact support.";
-            }
-            else {
-                // Login valid
-                session_regenerate_id(true); // Prevent session fixation
-                $_SESSION['reseller_logged_in'] = true;
-                $_SESSION['reseller_id'] = $reseller['id'];
-                $_SESSION['reseller_email'] = $reseller['email'];
-                $_SESSION['LAST_ACTIVITY'] = time();
-
-                header('Location: dashboard.php');
-                exit;
-            }
+        // --- BRUTE FORCE PROTECTION: 5 failed attempts per 15 minutes per IP ---
+        $failed_count = ResellerLogger::countLoginAttempts($pdo, $client_ip, '-15 minutes');
+        if ($failed_count >= 5) {
+            $error = "Too many login attempts. Please wait 15 minutes before trying again.";
+            ResellerLogger::log($pdo, 'login_blocked', "Brute force block | IP: $client_ip | Email: $email", [
+                'ip' => $client_ip, 'email' => $email
+            ]);
         }
         else {
-            $error = "Invalid credentials.";
+            // Find reseller by email
+            $stmt = $pdo->prepare("SELECT id, email, password_hash, status FROM resellers WHERE email = ?");
+            $stmt->execute([$email]);
+            $reseller = $stmt->fetch();
+
+            if ($reseller && password_verify($password, $reseller['password_hash'])) {
+                if ($reseller['status'] !== 'active') {
+                    $error = "This reseller account is suspended. Please contact support.";
+                    ResellerLogger::log($pdo, 'login_suspended', "Suspended account login attempt | IP: $client_ip | Email: $email", [
+                        'ip' => $client_ip, 'email' => $email, 'reseller_id' => $reseller['id']
+                    ]);
+                }
+                else {
+                    // Login valid
+                    session_regenerate_id(true);
+                    $_SESSION['reseller_logged_in'] = true;
+                    $_SESSION['reseller_id'] = $reseller['id'];
+                    $_SESSION['reseller_email'] = $reseller['email'];
+                    $_SESSION['LAST_ACTIVITY'] = time();
+
+                    ResellerLogger::log($pdo, 'login_success', "Reseller login | IP: $client_ip | Email: $email", [
+                        'ip' => $client_ip, 'email' => $email, 'reseller_id' => $reseller['id']
+                    ]);
+
+                    header('Location: dashboard.php');
+                    exit;
+                }
+            }
+            else {
+                $error = "Invalid credentials.";
+                ResellerLogger::log($pdo, 'login_failed', "Invalid credentials | IP: $client_ip | Email: $email", [
+                    'ip' => $client_ip, 'email' => $email
+                ]);
+            }
         }
     }
 }

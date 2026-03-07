@@ -2,9 +2,11 @@
 // /reseller/generate-license.php
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/ResellerLogger.php';
 
 $reseller_id = $_SESSION['reseller_id'];
 $reseller_email = $_SESSION['reseller_email'];
+$client_ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
 
 $success = null;
 $error = null;
@@ -14,104 +16,174 @@ if (empty($_SESSION['reseller_csrf'])) {
     $_SESSION['reseller_csrf'] = bin2hex(random_bytes(32));
 }
 
-// RATE LIMITING: Math max 50 per minute per session
-$rate_limit_window = 60; // seconds
-$rate_limit_max = 50;
+// --- RE-VERIFY RESELLER STATUS (anti-suspension bypass) ---
+$stmt = $pdo->prepare("SELECT status FROM resellers WHERE id = ? LIMIT 1");
+$stmt->execute([$reseller_id]);
+$current_reseller = $stmt->fetch();
 
-if (!isset($_SESSION['reseller_rate_limit'])) {
-    $_SESSION['reseller_rate_limit'] = [];
+if (!$current_reseller || $current_reseller['status'] !== 'active') {
+    // Force logout — account was suspended since last page load
+    session_unset();
+    session_destroy();
+    header('Location: login.php?msg=' . urlencode('Your account has been suspended.'));
+    exit;
 }
-
-// Clean old requests from session
-$now = time();
-$_SESSION['reseller_rate_limit'] = array_filter($_SESSION['reseller_rate_limit'], function ($timestamp) use ($now, $rate_limit_window) {
-    return ($now - $timestamp) < $rate_limit_window;
-});
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate'])) {
     // Validate CSRF
     if (!isset($_POST['csrf_token']) || trim($_POST['csrf_token']) !== $_SESSION['reseller_csrf']) {
         $error = "Security token mismatch. Please try again.";
     }
-    elseif (count($_SESSION['reseller_rate_limit']) >= $rate_limit_max) {
-        $error = "Rate limit exceeded. You can only generate 50 licenses per minute to prevent abuse.";
-    }
     else {
-        $customer_email = trim($_POST['customer_email'] ?? '');
+        // --- DB-BASED RATE LIMITING ---
+        $hourly_count = ResellerLogger::countEvents($pdo, 'license_generated', $reseller_id, '-1 hour');
+        $daily_count = ResellerLogger::countEvents($pdo, 'license_generated', $reseller_id, '-1 day');
 
-        if (!filter_var($customer_email, FILTER_VALIDATE_EMAIL)) {
-            $error = "Please provide a valid customer email address.";
+        if ($hourly_count >= 50) {
+            $error = "Hourly limit reached (50 per hour). Please wait before generating more licenses.";
+            ResellerLogger::log($pdo, 'rate_limit_hit', "Hourly limit | Reseller: $reseller_id | Count: $hourly_count", [
+                'ip' => $client_ip, 'reseller_id' => $reseller_id, 'email' => $reseller_email
+            ]);
+        }
+        elseif ($daily_count >= 200) {
+            // AUTO-FLAG: Suspend reseller for abuse
+            try {
+                $pdo->prepare("UPDATE resellers SET status = 'suspended' WHERE id = ?")->execute([$reseller_id]);
+            }
+            catch (\Exception $e) {
+            }
+
+            ResellerLogger::log($pdo, 'account_flagged', "Auto-suspended for abuse | Reseller: $reseller_id | Daily count: $daily_count", [
+                'ip' => $client_ip, 'reseller_id' => $reseller_id, 'email' => $reseller_email
+            ]);
+
+            session_unset();
+            session_destroy();
+            header('Location: login.php?msg=' . urlencode('Account suspended due to unusual activity. Contact support.'));
+            exit;
         }
         else {
-            // Log attempt
-            $_SESSION['reseller_rate_limit'][] = $now;
+            $customer_email = trim($_POST['customer_email'] ?? '');
 
-            // Generate BIO-XXXX-XXXX-XXXX
-            // We use uppercase alphanumeric for format parity with main engine
-            function generateResellerKey()
-            {
-                $chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-                $segments = [];
-                for ($i = 0; $i < 3; $i++) {
-                    $segment = '';
-                    for ($j = 0; $j < 4; $j++) {
-                        $segment .= $chars[random_int(0, strlen($chars) - 1)];
-                    }
-                    $segments[] = $segment;
-                }
-                return 'BIO-' . implode('-', $segments);
-            }
-
-            $key_generated = false;
-            $max_attempts = 10;
-            $attempts = 0;
-            $final_key = '';
-
-            while (!$key_generated && $attempts < $max_attempts) {
-                $candidate_key = generateResellerKey();
-
-                // Check if key exists
-                $stmt = $pdo->prepare("SELECT COUNT(*) FROM licenses WHERE license_key = ?");
-                $stmt->execute([$candidate_key]);
-                if ($stmt->fetchColumn() == 0) {
-                    $final_key = $candidate_key;
-                    $key_generated = true;
-                }
-                $attempts++;
-            }
-
-            if (!$key_generated) {
-                $error = "Failed to generate a unique key. Please try again.";
+            if (!filter_var($customer_email, FILTER_VALIDATE_EMAIL)) {
+                $error = "Please provide a valid customer email address.";
             }
             else {
-                // Insert into licenses. Using client_email specifically to map to main engine requirements
-                try {
-                    $stmt = $pdo->prepare("INSERT INTO licenses (license_key, client_email, type, reseller_id, status, max_domains) VALUES (:key, :email, 'reseller_generated', :reseller_id, 'pending_activation', 1)");
-                    $stmt->execute([
-                        ':key' => $final_key,
-                        ':email' => $customer_email,
-                        ':reseller_id' => $reseller_id
-                    ]);
-
-                    // Phase 4: Increment reseller's total_generated counter
-                    $pdo->prepare("UPDATE resellers SET total_generated = total_generated + 1 WHERE id = ?")
-                        ->execute([$reseller_id]);
-
-                    // Phase 4: Log system event
-                    try {
-                        $pdo->prepare("INSERT INTO system_events (event_type, details) VALUES ('license_generated', ?)")
-                            ->execute(["Reseller: $reseller_id | License: $final_key | Customer: $customer_email"]);
+                // Generate BIO-XXXX-XXXX-XXXX
+                function generateResellerKey()
+                {
+                    $chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+                    $segments = [];
+                    for ($i = 0; $i < 3; $i++) {
+                        $segment = '';
+                        for ($j = 0; $j < 4; $j++) {
+                            $segment .= $chars[random_int(0, strlen($chars) - 1)];
+                        }
+                        $segments[] = $segment;
                     }
-                    catch (Exception $e) {
-                    }
-
-                    $success = [
-                        'key' => $final_key,
-                        'email' => htmlspecialchars($customer_email)
-                    ];
+                    return 'BIO-' . implode('-', $segments);
                 }
-                catch (PDOException $e) {
-                    $error = "Database error generating license: " . $e->getMessage();
+
+                $key_generated = false;
+                $max_attempts = 10;
+                $attempts = 0;
+                $final_key = '';
+
+                while (!$key_generated && $attempts < $max_attempts) {
+                    $candidate_key = generateResellerKey();
+                    $stmt = $pdo->prepare("SELECT COUNT(*) FROM licenses WHERE license_key = ?");
+                    $stmt->execute([$candidate_key]);
+                    if ($stmt->fetchColumn() == 0) {
+                        $final_key = $candidate_key;
+                        $key_generated = true;
+                    }
+                    $attempts++;
+                }
+
+                if (!$key_generated) {
+                    $error = "Failed to generate a unique key. Please try again.";
+                }
+                else {
+                    try {
+                        $pdo->beginTransaction();
+
+                        // Insert license as pending_activation
+                        $stmt = $pdo->prepare("INSERT INTO licenses (license_key, client_email, type, reseller_id, status, max_domains) VALUES (:key, :email, 'reseller_generated', :reseller_id, 'pending_activation', 1)");
+                        $stmt->execute([
+                            ':key' => $final_key,
+                            ':email' => $customer_email,
+                            ':reseller_id' => $reseller_id
+                        ]);
+
+                        // Increment reseller's total_generated counter
+                        $pdo->prepare("UPDATE resellers SET total_generated = total_generated + 1 WHERE id = ?")
+                            ->execute([$reseller_id]);
+
+                        // Generate email verification token for buyer
+                        $verification_token = bin2hex(random_bytes(16));
+                        $verification_expires = date('Y-m-d H:i:s', time() + 1800); // 30 minutes
+
+                        $stmt = $pdo->prepare("INSERT INTO email_verifications (license_key, verification_token, expires_at) VALUES (?, ?, ?)");
+                        $stmt->execute([$final_key, $verification_token, $verification_expires]);
+
+                        $pdo->commit();
+
+                        // Log the generation event
+                        ResellerLogger::log($pdo, 'license_generated', "Reseller: $reseller_id | License: $final_key | Customer: $customer_email", [
+                            'ip' => $client_ip, 'reseller_id' => $reseller_id, 'email' => $reseller_email
+                        ]);
+
+                        // Send verification email to buyer (non-blocking — don't fail on SMTP errors)
+                        try {
+                            require_once __DIR__ . '/../includes/EmailService.php';
+                            $verify_url = 'https://license.bioscript.link/verify-email.php?token=' . urlencode($verification_token);
+
+                            $mail = EmailService::createMailerPublic($pdo, $customer_email);
+                            $mail->Subject = 'Verify Your BioScript License';
+                            $mail->Body = '<html><body style="font-family:Arial,sans-serif;background:#0f172a;color:#fff;padding:40px;margin:0;">'
+                                . '<div style="max-width:600px;margin:0 auto;background:#1e293b;border-radius:12px;overflow:hidden;border:1px solid #334155;">'
+                                . '<div style="padding:30px;border-bottom:1px solid #334155;background:linear-gradient(135deg,#0f172a,#1e293b);">'
+                                . '<h2 style="margin:0;color:#38bdf8;font-size:22px;text-transform:uppercase;letter-spacing:2px;">Verify Your Email</h2>'
+                                . '</div><div style="padding:40px;">'
+                                . '<p style="margin-top:0;color:#94a3b8;">A BioScript license has been issued to this email address. Please verify your email to activate it.</p>'
+                                . '<div style="margin:24px 0;padding:20px;background:#0f172a;border-radius:8px;border:1px dashed #334155;text-align:center;">'
+                                . '<p style="margin:0 0 8px 0;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#64748b;">Your License Key</p>'
+                                . '<div style="font-family:monospace;font-size:20px;font-weight:bold;color:#10b981;letter-spacing:2px;">' . htmlspecialchars($final_key) . '</div>'
+                                . '</div>'
+                                . '<div style="text-align:center;margin-top:24px;">'
+                                . '<a href="' . htmlspecialchars($verify_url) . '" style="display:inline-block;background:linear-gradient(135deg,#0ea5e9,#0284c7);color:#fff;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:bold;font-size:14px;">Verify Email &amp; Activate License</a>'
+                                . '</div>'
+                                . '<p style="font-size:12px;color:#64748b;margin-top:20px;text-align:center;">This verification link expires in 30 minutes.</p>'
+                                . '</div><div style="padding:16px;text-align:center;background:#0f172a;border-top:1px solid #334155;">'
+                                . '<p style="margin:0;font-size:11px;color:#475569;">&copy; ' . date('Y') . ' BioScript</p>'
+                                . '</div></div></body></html>';
+                            $mail->send();
+
+                            ResellerLogger::log($pdo, 'verification_email_sent', "Token sent to $customer_email for license $final_key", [
+                                'ip' => $client_ip, 'reseller_id' => $reseller_id, 'email' => $customer_email
+                            ]);
+                        }
+                        catch (\Exception $mailErr) {
+                            // Log but don't fail — license was still created
+                            ResellerLogger::log($pdo, 'verification_email_failed', "SMTP failed for $customer_email: " . $mailErr->getMessage(), [
+                                'ip' => $client_ip, 'reseller_id' => $reseller_id, 'email' => $customer_email
+                            ]);
+                        }
+
+                        $success = [
+                            'key' => $final_key,
+                            'email' => htmlspecialchars($customer_email)
+                        ];
+                    }
+                    catch (PDOException $e) {
+                        if ($pdo->inTransaction()) {
+                            $pdo->rollBack();
+                        }
+                        $error = "Database error generating license. Please try again.";
+                        ResellerLogger::log($pdo, 'license_generation_error', "DB error for Reseller $reseller_id: " . $e->getMessage(), [
+                            'ip' => $client_ip, 'reseller_id' => $reseller_id
+                        ]);
+                    }
                 }
             }
         }
